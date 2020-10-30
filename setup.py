@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
-import myproject
+import mmsdcnn
 
 setup(
-    name='myproject',
-    version=myproject.__version__,
+    name='mmsdcnn',
+    version=mmsdcnn.__version__,
     url='https://github.com/maet3608/minimal-python-project',
     author='Author name',
     author_email='author@gmail.com',
