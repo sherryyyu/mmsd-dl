@@ -1,2 +1,2 @@
-# minimal-python-project
-Template for small Python projects
+# mmsd-CNN
+CNN models for multi-modal seizure detection
