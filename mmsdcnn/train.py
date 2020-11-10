@@ -13,7 +13,8 @@ Function:
    Define some common functions for loading data
 '''
 
-from mmsdcommon.data import split_leave_one_patient_out, load_data
+from mmsdcommon.data import load_metadata, load_sessions, make_windows
+from mmsdcommon.cross_validata import split_leave_one_patient_out
 from pathlib import Path
 import os
 from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
@@ -52,13 +53,23 @@ if __name__ == '__main__':
     fdir = os.path.join(Path.home(), 'datasets', 'wristband_data')
 
     modalities = ['EDA', 'ACC', 'BVP']
-    folds, num = split_leave_one_patient_out(os.path.join(fdir, 'metadata.csv'), 5, modalities)
+    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=3, modalities=modalities, szr_sess_only=True)
+    folds, num = split_leave_one_patient_out(metadata_df)
     print('Number of folds:', num)
-    # print(data[0][0].groupby(['patient', 'session'])['fid'].apply(list))
-    for fold in folds:
-        print('Loading train and test data... ')
-        x_train, y_train, x_test, y_test, mods_list = load_data(fold, fdir, label_win_type=0)
-        print('Training data shape before undersampling', x_train.shape, y_train.shape)
+    for i, fold in enumerate(folds):
+        print(f'Fold {i+1}: loading train and test data... ')
+        x_train_sess, y_train_sess, x_test_sess, y_test_sess, channel_lookup = load_sessions(fold, fdir)
+        print(f'Loaded {len(x_train_sess)} train sessions and {len(x_test_sess)} test sessions.')
+
+        # BVP signal processing here
+
+        x_train_sess, y_train_sess = make_windows(x_train_sess, y_train_sess, window_length=10)
+
+        # merge all sessions into one numpy array
+        x_train = np.concatenate(x_train_sess)
+        y_train = np.concatenate(y_train_sess)
+
+        print('Training data shape before under sampling', x_train.shape, y_train.shape)
         x_train, y_train = sample_imbalance('under', x_train, y_train)
-        print('After undersampling', x_train.shape, y_train.shape)
+        print('After under sampling', x_train.shape, y_train.shape)
         break
