@@ -15,10 +15,12 @@ Function:
 
 from mmsdcommon.data import load_metadata, load_sessions, make_windows
 from mmsdcommon.cross_validata import split_leave_one_patient_out
+from mmsdcommon.preprocess import remove_non_motor_windows
 from pathlib import Path
 import os
 from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
 from imblearn.under_sampling import RandomUnderSampler
+from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 
 
@@ -48,6 +50,21 @@ def sample_imbalance(sampling, data, label):
         data = np.reshape(data, [-1, data_shape[1], data_shape[2]])
     return data, label
 
+def preprocess(data_sess, label_sess, channel_lookup):
+    # TODO: insert BVP bandpass filter here
+
+    print('Preprocess: make windows...')
+    data_sess, label_sess = make_windows(data_sess, label_sess, window_length=10, label_win_type=0.1)
+
+    # remove non-motor windows
+    data_sess, label_sess = remove_non_motor_windows(data_sess, label_sess, channel_lookup, 0.1)
+
+    # merge all sessions into one numpy array
+    data = np.concatenate(data_sess)
+    label = np.concatenate(label_sess)
+
+    return data, label
+
 
 if __name__ == '__main__':
     fdir = os.path.join(Path.home(), 'datasets', 'wristband_data')
@@ -55,21 +72,22 @@ if __name__ == '__main__':
     modalities = ['EDA', 'ACC', 'BVP']
     metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=3, modalities=modalities, szr_sess_only=True)
     folds, num = split_leave_one_patient_out(metadata_df)
+
     print('Number of folds:', num)
     for i, fold in enumerate(folds):
         print(f'Fold {i+1}: loading train and test data... ')
         x_train_sess, y_train_sess, x_test_sess, y_test_sess, channel_lookup = load_sessions(fold, fdir)
         print(f'Loaded {len(x_train_sess)} train sessions and {len(x_test_sess)} test sessions.')
 
-        # BVP signal processing here
-
-        x_train_sess, y_train_sess = make_windows(x_train_sess, y_train_sess, window_length=10)
-
-        # merge all sessions into one numpy array
-        x_train = np.concatenate(x_train_sess)
-        y_train = np.concatenate(y_train_sess)
+        x_train, y_train = preprocess(x_train_sess, y_train_sess, channel_lookup)
 
         print('Training data shape before under sampling', x_train.shape, y_train.shape)
         x_train, y_train = sample_imbalance('under', x_train, y_train)
         print('After under sampling', x_train.shape, y_train.shape)
-        break
+
+        enc = OneHotEncoder(handle_unknown='ignore', sparse=False)
+        y_train = enc.fit_transform(np.reshape(y_train, (len(y_train), 1)))
+        nb_classes = y_train.shape[1]
+
+        # train the CNN model
+
