@@ -14,10 +14,11 @@ Function:
 """
 
 import torch
+from nutsml.config import Config
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-PARAMS = {'num_epoch': 10,
-          'lr': 1e-3,
-          'batch_size': 32}
+PARAMS = Config(num_epoch =  10,
+          lr= 1e-3,
+          batch_size= 32)
 
