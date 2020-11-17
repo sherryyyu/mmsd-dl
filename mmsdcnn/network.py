@@ -25,7 +25,7 @@ class HAR_model(nn.Module):
         super().__init__()
 
         # Extract features, 1D conv layers
-        self.features = nn.Sequential(      # input: 640 * 6
+        self.features = nn.Sequential(      # input: 640 * input_size
             nn.Conv1d(input_size, 64, 3, padding=1),
             nn.ReLU(),
             nn.Conv1d(64, 64, 3, padding=1),

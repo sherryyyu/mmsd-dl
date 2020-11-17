@@ -13,17 +13,22 @@ Function:
    Define some common functions for loading data
 '''
 
+import time
+import os
+from pathlib import Path
+
+import numpy as np
+import torch
+from nutsflow import *
+from nutsml import PrintType, PlotLines
+from sklearn.metrics import roc_auc_score
+
 from mmsdcommon.data import load_metadata,  gen_session,  gen_window
 from mmsdcommon.cross_validate import leave1out
 from mmsdcommon.preprocess import remove_non_motor
+from mmsdcommon.util import num_channels
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import PARAMS, DEVICE
-from pathlib import Path
-import os
-import numpy as np
-from nutsflow import *
-from nutsml import PrintType
-import torch
 
 
 # def sample_imbalance(sampling, label, data):
@@ -90,72 +95,87 @@ def MakeBatch(samples, batchsize):
         yield tar_batch, data_batch
 
 
-# @nut_function
-# def PredBatch(batch, net):
-#     data, targets = batch
-#     pred = net(data)
-#     probs = probabilities(pred)
-#     preds = torch.max(probs, 1)[1].view_as(targets)
-#     return to_numpy(targets), to_numpy(preds), to_numpy(probs)
+@nut_function
+def PredBatch(batch, net):
+    targets, data = batch
+    preds = net(data)
+    probs = probabilities(preds)
+    preds = torch.max(probs, 1)[1].view_as(targets)
+    return to_numpy(targets), to_numpy(preds), to_numpy(probs)
 
 
 @nut_function
 def TrainBatch(batch, net, optimizer, criterion):
     targets, data = batch
-    pred = net(data)
-    loss = criterion(pred, targets)
+    preds = net(data)
+    loss = criterion(preds, targets)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    return loss.item()
-
-# def train_cnn(net, y_train, x_train):
-#     criterion = torch.nn.CrossEntropyLoss()
-#     optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
-#
-#     print(x_train.shape, y_train.shape)
-#     x_train = [x_train[i, :, :] for i in range(x_train.shape[0])]
-#     samples = x_train >> Zip(y_train)
-#
-#     for epoch in range(PARAMS.num_epoch):
-#         print('epoch ', epoch)
-#         samples >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Consume()
+    return loss.item(), auc(preds, targets)
 
 
+def auc(pred, target):
+    probs = probabilities(pred)
+    preds = probs[:, 1]
+    return safe_auc(to_numpy(target), to_numpy(preds))
+
+def safe_auc(y_true, y_score):
+    try:
+        return roc_auc_score(y_true, y_score)
+    except:
+        print('roc_auc_score failed')
+        return 0.5
+
+def train_cnn(net, trainset, fdir):
+    if PARAMS.verbose > 1:
+        plotlines = PlotLines((0, 1, 2), layout=(3, 1), figsize=(8, 12),
+                              titles=('loss', 'train-auc', 'val-auc'))
+
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
+
+    for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
+        start = time.time()
+        net.train()
+        losses, aucs =  (gen_session(trainset, fdir) >> Preprocess() >> Convert2numpy()
+               >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Unzip())
+
+        loss, auc = np.mean(losses), np.mean(aucs)
+
+        if PARAMS.verbose:
+            msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f}  auc {:.2f}"
+            elapsed = time.strftime("%M:%S", time.gmtime(time.time() - start))
+            print(msg.format(epoch, PARAMS.n_epochs, elapsed, loss, auc))
+
+def evaluate(net, testset, fdir):
+    net.eval()
+    with torch.no_grad():
+        tars, preds, probs = (gen_session(testset, fdir) >> Preprocess() >> Convert2numpy()
+                              >> MakeBatch(PARAMS.batch_size) >>
+                              PredBatch(net) >> Unzip())
+        tars = tars >> Flatten() >> Collect()
+        preds = preds >> Flatten() >> Collect()
+        probs = probs >> Flatten() >> Get(1) >> Collect()
+        auc = roc_auc_score(tars, probs)
+    return tars, preds, probs, auc
 
 if __name__ == '__main__':
     fdir = os.path.join(Path.home(), 'datasets', 'wristband_data')
 
     modalities = ['EDA', 'ACC', 'BVP', 'HR']
-    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=2, modalities=modalities, szr_sess_only=True)
+    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=None, modalities=modalities, szr_sess_only=True)
     folds = leave1out(metadata_df, 'patient')
+    nb_classes = 2
 
-    net = create_network(6, 2)
+    net = create_network(num_channels(modalities), nb_classes)
 
     print('Number of folds:', len(folds))
     for i, (train, test) in enumerate(folds):
         print(f'Fold {i+1}: loading train and test data... ')
 
-        criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
-
-        loss = gen_session(train, fdir)  >> PrintType('Session: ') >> Preprocess() >> Convert2numpy() \
-        >> MakeBatch(256) >> PrintType('Batch: ') >> TrainBatch(net, optimizer, criterion) >> Collect()
-
-        print(loss)
+        train_cnn(net, train, fdir)
+        tars, preds, probs, auc = evaluate(net, test, fdir)
 
         break
-
-        # out = preprocess_session() >> PrintType() >> Collect()
-        #
-        # # merge all sessions
-        # y_train = np.concatenate([i[0] for i in out])
-        # x_train = np.concatenate([i[1] for i in out])
-        # # over sample
-        # label, data = sample_imbalance('smote', y_train, x_train)
-        # # one-hot
-        # y_train = enc.fit_transform(np.reshape(y_train, (len(y_train), 1)))
-        # print(y_train.shape, x_train.shape)
-        #
-        # train_cnn(net, y_train, x_train)
 
