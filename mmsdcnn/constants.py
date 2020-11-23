@@ -21,5 +21,12 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 PARAMS = Config(n_epochs =  2,
           lr= 1e-3,
           batch_size= 256,
-          verbose = 2)
+          win_len = 10,
+          verbose = 2,
+          datadir = 'datasets/wristband_data',
+          cachedir= 'cache',
+          modalities = ['EDA', 'ACC', 'BVP', 'HR'],
+          preictal_time = 60,
+          motor_threshold = 0.1,
+          cacheclear=True)
 

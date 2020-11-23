@@ -10,7 +10,7 @@ Author:
 Initial Version:
     Nov-2020
 Function:
-   Define some common functions for loading data
+   Define some functions for neural network training
 '''
 
 import time
@@ -21,7 +21,6 @@ import numpy as np
 import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
-from sklearn.metrics import roc_auc_score
 
 from mmsdcommon.data import load_metadata,  gen_session,  gen_window
 from mmsdcommon.cross_validate import leave1out
@@ -29,7 +28,8 @@ from mmsdcommon.preprocess import remove_non_motor
 from mmsdcommon.util import num_channels
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import PARAMS, DEVICE
-
+from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy
+from mmsdcnn.evaluate import evaluate
 
 # def sample_imbalance(sampling, label, data):
 # from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
@@ -59,123 +59,72 @@ from mmsdcnn.constants import PARAMS, DEVICE
 #         data = np.reshape(data, [-1, data_shape[1], data_shape[2]])
 #     return label, data
 
-def merge_modalities(session):
-    label = np.array([sample.label for sample in session])
-    data = np.array([np.concatenate(sample[1:], axis=1) for sample in session])
-    return label, data
+# def merge_modalities(session):
+#     label = np.array([sample.label for sample in session])
+#     data = np.array([np.concatenate(sample[1:], axis=1) for sample in session])
+#     return label, data
 
-@nut_processor
-def Preprocess(sessions):
-    return sessions >> gen_window(10, 0.75, 0)  >> remove_non_motor(0.1)
-
-@nut_function
-def Convert2numpy(sample, nb_classes=2):
-    X = np.concatenate(sample[1:], axis=1)
-    # y = one_hot(sample[0], nb_classes)
-    y = sample[0]
-    return y, X
+# @nut_processor
+# def Preprocess(sessions):
+#     return sessions >> gen_window(PARAMS.win_len, 0.75, 0)  >> remove_non_motor(PARAMS.motor_threshold)
 
 
-def one_hot(y, nb_classes):
-    return np.array([1 if i==y else 0 for i in range(nb_classes)])
+def has_szr(dataset):
+    '''Check if the dataset contains seizures, can be slow if dataset is big.'''
+    y = gen_session(dataset, fdir) >> gen_window(PARAMS.win_len, 0, 0) >> remove_non_motor(PARAMS.motor_threshold) >> Get(0) >> Collect()
+    all_zeros = not np.array(y).any()
+    return not all_zeros
 
 
-def to_numpy(x):
-    return x.detach().cpu().numpy()
-
-def probabilities(pred):
-    return torch.softmax(pred, 1)
-
-@nut_processor
-def MakeBatch(samples, batchsize):
-    for batch in samples >> Chunk(batchsize):
-        targets, data = batch >> Unzip()
-        data_batch = torch.tensor(data).permute(0,2,1).to(DEVICE)
-        tar_batch = torch.tensor(targets).to(DEVICE)
-        yield tar_batch, data_batch
-
-
-@nut_function
-def PredBatch(batch, net):
-    targets, data = batch
-    preds = net(data)
-    probs = probabilities(preds)
-    preds = torch.max(probs, 1)[1].view_as(targets)
-    return to_numpy(targets), to_numpy(preds), to_numpy(probs)
-
-
-@nut_function
-def TrainBatch(batch, net, optimizer, criterion):
-    targets, data = batch
-    preds = net(data)
-    loss = criterion(preds, targets)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-    return loss.item(), auc(preds, targets)
-
-
-def auc(pred, target):
-    probs = probabilities(pred)
-    preds = probs[:, 1]
-    return safe_auc(to_numpy(target), to_numpy(preds))
-
-def safe_auc(y_true, y_score):
-    try:
-        return roc_auc_score(y_true, y_score)
-    except:
-        print('roc_auc_score failed')
-        return 0.5
-
-def train_cnn(net, trainset, fdir):
+def train_cnn(net, trainset, fdir, i):
     if PARAMS.verbose > 1:
         plotlines = PlotLines((0, 1, 2), layout=(3, 1), figsize=(8, 12),
                               titles=('loss', 'train-auc', 'val-auc'))
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
+    train_cache = Cache(os.path.join(fdir, PARAMS.cachedir, 'train', 'fold%d' % i), PARAMS.cacheclear)
+    test_cache = Cache(os.path.join(fdir, PARAMS.cachedir, 'test', 'fold%d' % i), PARAMS.cacheclear)
 
+
+    auc = detected_szr = num_szr = num_false_alarms = num_non_seizure_intervals = None
     for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
         start = time.time()
         net.train()
-        losses, aucs =  (gen_session(trainset, fdir) >> Preprocess() >> Convert2numpy()
-               >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Unzip())
+        losses =  (gen_session(trainset, fdir) >> PrintType('Session')
+                   >> gen_window(PARAMS.win_len, 0.75, 0)  >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> train_cache
+                   >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Take(1) >> Collect())
 
-        loss, auc = np.mean(losses), np.mean(aucs)
+        loss = np.mean(losses)
 
         if PARAMS.verbose:
-            msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f}  auc {:.2f}"
+            msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f}"
             elapsed = time.strftime("%M:%S", time.gmtime(time.time() - start))
-            print(msg.format(epoch, PARAMS.n_epochs, elapsed, loss, auc))
+            print(msg.format(epoch, PARAMS.n_epochs, elapsed, loss))
 
-def evaluate(net, testset, fdir):
-    net.eval()
-    with torch.no_grad():
-        tars, preds, probs = (gen_session(testset, fdir) >> Preprocess() >> Convert2numpy()
-                              >> MakeBatch(PARAMS.batch_size) >>
-                              PredBatch(net) >> Unzip())
-        tars = tars >> Flatten() >> Collect()
-        preds = preds >> Flatten() >> Collect()
-        probs = probs >> Flatten() >> Get(1) >> Collect()
-        auc = roc_auc_score(tars, probs)
-    return tars, preds, probs, auc
+        auc, (detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals) = evaluate(net, test, fdir, test_cache)
+
+    return auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals
+
+
 
 if __name__ == '__main__':
-    fdir = os.path.join(Path.home(), 'datasets', 'wristband_data')
+    fdir = os.path.join(Path.home(), PARAMS.datadir)
 
-    modalities = ['EDA', 'ACC', 'BVP', 'HR']
-    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=None, modalities=modalities, szr_sess_only=True)
+    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=5, modalities=PARAMS.modalities, szr_sess_only=True)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
-    net = create_network(num_channels(modalities), nb_classes)
+    net = create_network(num_channels(PARAMS.modalities), nb_classes)
 
-    print('Number of folds:', len(folds))
     for i, (train, test) in enumerate(folds):
-        print(f'Fold {i+1}: loading train and test data... ')
+        print(f"Fold {i+1}/{len(folds)}: loading train patients {train['patient'].unique()} and test patients {test['patient'].unique()}... ")
 
-        train_cnn(net, train, fdir)
-        tars, preds, probs, auc = evaluate(net, test, fdir)
+        # disabled because it's slow
+        # assert has_szr(test), 'Test set contains no seizure, check train-test split or patient set!'
 
-        break
+        auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals = train_cnn(net, train, fdir, i)
+        print(auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals)
+
+
 

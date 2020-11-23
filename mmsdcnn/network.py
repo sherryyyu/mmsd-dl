@@ -34,6 +34,7 @@ class HAR_model(nn.Module):
             nn.MaxPool1d(2)
             )
         # Classify output, fully connected layers
+        # TODO: try global average pooling
         self.classifier = nn.Sequential(
             nn.Flatten(),
         	nn.Linear(64*320, 100),
@@ -46,13 +47,13 @@ class HAR_model(nn.Module):
         x = self.classifier(x)
         return x
 
-def print_summary(net):
-    print(summary(net, torch.zeros((1, 6, 640)), show_input=False))
+def print_summary(net, input_dim):
+    print(summary(net, torch.zeros((1, input_dim, 640)), show_input=False))
 
 def create_network(input_dim, num_classes):
     model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
-    print_summary(model)
+    print_summary(model, input_dim)
     return model.double()
 
 
