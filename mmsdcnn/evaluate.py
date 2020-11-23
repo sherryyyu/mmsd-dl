@@ -31,7 +31,7 @@ def evaluate(net, testset, fdir, test_cache):
                               >> MakeBatch(PARAMS.batch_size) >> PredBatch(net) >> Unzip())
 
         tars = tars  >> Flatten() >> Clone(PARAMS.win_len) >> Collect()
-        preds = preds >> Flatten() >> Clone(PARAMS.win_len) >> Collect()
+        # preds = preds >> Flatten() >> Clone(PARAMS.win_len) >> Collect()
         probs = probs >> Flatten() >> Get(1) >> Clone(PARAMS.win_len) >> Collect()
 
         auc = roc_auc_score(probs, tars)

@@ -78,8 +78,7 @@ def has_szr(dataset):
 
 def train_cnn(net, trainset, fdir, i):
     if PARAMS.verbose > 1:
-        plotlines = PlotLines((0, 1, 2), layout=(3, 1), figsize=(8, 12),
-                              titles=('loss', 'train-auc', 'val-auc'))
+        plotlines = PlotLines((0, 1, 2), layout=(3, 1), figsize=(8, 12), titles=('loss', 'test-auc'))
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
@@ -93,7 +92,7 @@ def train_cnn(net, trainset, fdir, i):
         net.train()
         losses =  (gen_session(trainset, fdir) >> PrintType('Session')
                    >> gen_window(PARAMS.win_len, 0.75, 0)  >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> train_cache
-                   >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Take(1) >> Collect())
+                   >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Collect())
 
         loss = np.mean(losses)
 
@@ -111,20 +110,37 @@ def train_cnn(net, trainset, fdir, i):
 if __name__ == '__main__':
     fdir = os.path.join(Path.home(), PARAMS.datadir)
 
-    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=5, modalities=PARAMS.modalities, szr_sess_only=True)
+    motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
+
+    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=5, modalities=PARAMS.modalities, szr_sess_only=True,
+                                patient_subset=motor_patients)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
-    net = create_network(num_channels(PARAMS.modalities), nb_classes)
 
+
+    avg_auc = total_det_szr = total_szr = total_fa = total_int = 0
     for i, (train, test) in enumerate(folds):
         print(f"Fold {i+1}/{len(folds)}: loading train patients {train['patient'].unique()} and test patients {test['patient'].unique()}... ")
+        net = create_network(num_channels(PARAMS.modalities), nb_classes)
 
         # disabled because it's slow
         # assert has_szr(test), 'Test set contains no seizure, check train-test split or patient set!'
 
         auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals = train_cnn(net, train, fdir, i)
         print(auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals)
+
+        avg_auc += auc
+        total_det_szr += detected_szr
+        total_szr += num_szr
+        total_fa += num_false_alarms
+        total_int += num_non_seizure_intervals
+
+
+    avg_auc = avg_auc/len(folds)
+    sensitivity = total_det_szr/total_szr
+    far = total_fa/total_int
+    print(f'Average metrics: avg_auc {avg_auc}, sen {sensitivity} ({total_det_szr}/{total_szr}), FAR {far}')
 
 
 
