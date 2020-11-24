@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from nutsflow import *
-from nutsml import PrintType, PlotLines
+from nutsml import PrintType, PlotLines, PrintColType
 
 from mmsdcommon.data import load_metadata,  gen_session,  gen_window
 from mmsdcommon.cross_validate import leave1out
@@ -28,36 +28,35 @@ from mmsdcommon.preprocess import remove_non_motor
 from mmsdcommon.util import num_channels
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import PARAMS, DEVICE
-from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy
+from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy, Normalise
 from mmsdcnn.evaluate import evaluate
 
-# def sample_imbalance(sampling, label, data):
-# from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
-# from imblearn.under_sampling import RandomUnderSampler
-#     data_shape = data.shape
-#
-#     # It seems like the imblearn library only accepts data of shape 2,
-#     # therefore we reshape the data to shape 2 before passing into the sampler and retrieve the shape after
-#     if len(data_shape) == 3:
-#         data = np.reshape(data, [data_shape[0], data_shape[1] * data_shape[2]])
-#
-#     if sampling == 'over':
-#         sampler = RandomOverSampler()
-#     elif sampling == 'smote':
-#         sampler = SMOTE()
-#     elif sampling == 'under':
-#         sampler = RandomUnderSampler()
-#     elif sampling == 'adasyn':
-#         sampler = ADASYN()
-#     else:
-#         print('Error: invalid sampler name, using Random Under Sampling.')
-#         sampler = RandomUnderSampler()
-#     data, label = sampler.fit_resample(data, label)
-#
-#     # Retrieve the original data shape if the original shape is 3
-#     if len(data_shape) == 3:
-#         data = np.reshape(data, [-1, data_shape[1], data_shape[2]])
-#     return label, data
+def sample_imbalance(sampling, label, data):
+    from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
+    from imblearn.under_sampling import RandomUnderSampler
+    data_shape = data.shape
+
+    # It seems like the imblearn library only accepts data of shape 2,
+    # therefore we reshape the data to shape 2 before passing into the sampler and retrieve the shape after
+    if len(data_shape) == 3:
+        data = np.reshape(data, [data_shape[0], data_shape[1] * data_shape[2]])
+
+    if sampling == 'over':
+        sampler = RandomOverSampler()
+    elif sampling == 'smote':
+        sampler = SMOTE()
+    elif sampling == 'under':
+        sampler = RandomUnderSampler()
+    elif sampling == 'adasyn':
+        sampler = ADASYN()
+    else:
+        raise ValueError('Invalid over/undersampling type!')
+    data, label = sampler.fit_resample(data, label)
+
+    # Retrieve the original data shape if the original shape is 3
+    if len(data_shape) == 3:
+        data = np.reshape(data, [-1, data_shape[1], data_shape[2]])
+    return label, data
 
 # def merge_modalities(session):
 #     label = np.array([sample.label for sample in session])
@@ -76,6 +75,17 @@ def has_szr(dataset):
     return not all_zeros
 
 
+@nut_processor
+def Preprocess(sessions):
+    for session in sessions:
+        label, data = ([session] >> Normalise() >>  gen_window(PARAMS.win_len, 0.75, 0)
+                       >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> Unzip())
+
+        label, data = sample_imbalance('under', np.array(label), np.array(data))
+        for i, l in enumerate(label):
+            yield l, data[i]
+
+
 def train_cnn(net, trainset, fdir, i):
     if PARAMS.verbose > 1:
         plotlines = PlotLines((0, 1, 2), layout=(3, 1), figsize=(8, 12), titles=('loss', 'test-auc'))
@@ -90,9 +100,9 @@ def train_cnn(net, trainset, fdir, i):
     for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
         start = time.time()
         net.train()
-        losses =  (gen_session(trainset, fdir) >> PrintType('Session')
-                   >> gen_window(PARAMS.win_len, 0.75, 0)  >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> train_cache
-                   >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Collect())
+
+        losses = (gen_session(trainset, fdir) >> PrintType() >> Preprocess() >> train_cache
+                  >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Collect())
 
         loss = np.mean(losses)
 
@@ -102,6 +112,9 @@ def train_cnn(net, trainset, fdir, i):
             print(msg.format(epoch, PARAMS.n_epochs, elapsed, loss))
 
         auc, (detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals) = evaluate(net, test, fdir, test_cache)
+
+        if PARAMS.verbose:
+            print(f'auc {auc}, detected {detected_szr}/{num_szr}, FAR {num_false_alarms}/{num_non_seizure_intervals}')
 
     return auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals
 
@@ -128,7 +141,7 @@ if __name__ == '__main__':
         # assert has_szr(test), 'Test set contains no seizure, check train-test split or patient set!'
 
         auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals = train_cnn(net, train, fdir, i)
-        print(auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals)
+        print(f'auc {auc}, detected {detected_szr}/{num_szr}, FAR {num_false_alarms}/{num_non_seizure_intervals}')
 
         avg_auc += auc
         total_det_szr += detected_szr
@@ -140,7 +153,7 @@ if __name__ == '__main__':
     avg_auc = avg_auc/len(folds)
     sensitivity = total_det_szr/total_szr
     far = total_fa/total_int
-    print(f'Average metrics: avg_auc {avg_auc}, sen {sensitivity} ({total_det_szr}/{total_szr}), FAR {far}')
+    print(f'Average metrics: avg_auc {avg_auc}, sen {sensitivity} ({total_det_szr}/{total_szr}), FAR {far} ({total_fa}/{total_int})')
 
 
 

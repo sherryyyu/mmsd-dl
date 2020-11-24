@@ -18,6 +18,7 @@ import torch
 from nutsflow import *
 from mmsdcnn.constants import PARAMS, DEVICE
 from mmsdcommon.metrics import roc_auc_score
+from mmsdcommon.preprocess import normalise_acc, normalise_eda, normalise_bvp, normalise_hr
 
 
 def probabilities(pred):
@@ -60,3 +61,15 @@ def Convert2numpy(sample):
     X = np.concatenate(sample[1:], axis=1)
     y = sample[0]
     return y, X
+
+@nut_function
+def Normalise(sample):
+    hr = normalise_hr(sample.hr)
+    bvp = normalise_bvp(sample.bvp)
+    eda = normalise_eda(sample.eda)
+    acc = normalise_acc(sample.acc)
+    sample = sample._replace(hr=hr)
+    sample = sample._replace(eda=eda)
+    sample = sample._replace(bvp=bvp)
+    sample = sample._replace(acc=acc)
+    return sample
