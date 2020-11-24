@@ -18,7 +18,8 @@ from nutsml.config import Config
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-PARAMS = Config(n_epochs =  20,
+PARAMS = Config(
+          n_epochs = 100,
           lr= 1e-3,
           batch_size= 256,
           win_len = 10,
@@ -26,7 +27,9 @@ PARAMS = Config(n_epochs =  20,
           datadir = 'datasets/wristband_data',
           cachedir= 'cache',
           modalities = ['EDA', 'ACC', 'BVP', 'HR'],
-          preictal_time = 60,
+          preictal_len = 60,
+          postictal_len = 0,
           motor_threshold = 0.1,
+          operating_pt = 0.5,
           cacheclear=True)
 

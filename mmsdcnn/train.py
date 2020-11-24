@@ -20,16 +20,19 @@ from pathlib import Path
 import numpy as np
 import torch
 from nutsflow import *
-from nutsml import PrintType, PlotLines, PrintColType
+from nutsml import PrintType, PlotLines
 
+from mmsdcommon.metrics import sen_far_count, roc_curve, roc_auc_score
 from mmsdcommon.data import load_metadata,  gen_session,  gen_window
 from mmsdcommon.cross_validate import leave1out
 from mmsdcommon.preprocess import remove_non_motor
 from mmsdcommon.util import num_channels
 from mmsdcnn.network import create_network
-from mmsdcnn.constants import PARAMS, DEVICE
+from mmsdcnn.constants import PARAMS
 from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy, Normalise
 from mmsdcnn.evaluate import evaluate
+from mmsdcommon.print import PrintAll
+
 
 def sample_imbalance(sampling, label, data):
     from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
@@ -58,15 +61,6 @@ def sample_imbalance(sampling, label, data):
         data = np.reshape(data, [-1, data_shape[1], data_shape[2]])
     return label, data
 
-# def merge_modalities(session):
-#     label = np.array([sample.label for sample in session])
-#     data = np.array([np.concatenate(sample[1:], axis=1) for sample in session])
-#     return label, data
-
-# @nut_processor
-# def Preprocess(sessions):
-#     return sessions >> gen_window(PARAMS.win_len, 0.75, 0)  >> remove_non_motor(PARAMS.motor_threshold)
-
 
 def has_szr(dataset):
     '''Check if the dataset contains seizures, can be slow if dataset is big.'''
@@ -78,17 +72,18 @@ def has_szr(dataset):
 @nut_processor
 def Preprocess(sessions):
     for session in sessions:
-        label, data = ([session] >> Normalise() >>  gen_window(PARAMS.win_len, 0.75, 0)
+        label, data = ([session] >> Normalise() >> PrintAll() >>  gen_window(PARAMS.win_len, 0.75, 0)
                        >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> Unzip())
 
-        label, data = sample_imbalance('under', np.array(label), np.array(data))
+        label, data = sample_imbalance('smote', np.array(label), np.array(data))
         for i, l in enumerate(label):
             yield l, data[i]
 
 
 def train_cnn(net, trainset, fdir, i):
     if PARAMS.verbose > 1:
-        plotlines = PlotLines((0, 1, 2), layout=(3, 1), figsize=(8, 12), titles=('loss', 'test-auc'))
+        p_path = os.path.join(fdir, 'plots', 'fold%d' % i)
+        plotlines = PlotLines((0, 1), layout=(2, 1), figsize=(8, 12), titles=('loss', 'test-auc'), filepath=p_path)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
@@ -96,7 +91,8 @@ def train_cnn(net, trainset, fdir, i):
     test_cache = Cache(os.path.join(fdir, PARAMS.cachedir, 'test', 'fold%d' % i), PARAMS.cacheclear)
 
 
-    auc = detected_szr = num_szr = num_false_alarms = num_non_seizure_intervals = None
+
+    auc  = operating_pts = sens = fars = None
     for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
         start = time.time()
         net.train()
@@ -111,28 +107,37 @@ def train_cnn(net, trainset, fdir, i):
             elapsed = time.strftime("%M:%S", time.gmtime(time.time() - start))
             print(msg.format(epoch, PARAMS.n_epochs, elapsed, loss))
 
-        auc, (detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals) = evaluate(net, test, fdir, test_cache)
+        tars, probs = evaluate(net, test, fdir, test_cache)
+
+        operating_pts, sens, fars = sen_far_count(tars, probs, PARAMS.preictal_len, PARAMS.postictal_len)
+        sen, far = roc_curve(sens, fars)
+        auc = roc_auc_score(sen, far)
 
         if PARAMS.verbose:
-            print(f'auc {auc}, detected {detected_szr}/{num_szr}, FAR {num_false_alarms}/{num_non_seizure_intervals}')
+            print('sensitivity', sen)
+            print('FAR',far)
+            print(f'auc {auc}')
+            i = len(operating_pts)//2
+            print(f'Operating point = {operating_pts[i]:.2f}, SEN = {sens[i][0]}/{sens[i][1]}, FAR = {fars[i][0]}/{fars[i][1]}')
 
-    return auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals
+        if PARAMS.verbose > 1:
+            plotlines((loss, auc))
+
+    return auc, operating_pts, sens, fars
 
 
 
 if __name__ == '__main__':
     fdir = os.path.join(Path.home(), PARAMS.datadir)
-
     motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
-
     metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=5, modalities=PARAMS.modalities, szr_sess_only=True,
                                 patient_subset=motor_patients)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
-
-
-    avg_auc = total_det_szr = total_szr = total_fa = total_int = 0
+    sen_all = []
+    far_all = []
+    operating_pts = None
     for i, (train, test) in enumerate(folds):
         print(f"Fold {i+1}/{len(folds)}: loading train patients {train['patient'].unique()} and test patients {test['patient'].unique()}... ")
         net = create_network(num_channels(PARAMS.modalities), nb_classes)
@@ -140,20 +145,23 @@ if __name__ == '__main__':
         # disabled because it's slow
         # assert has_szr(test), 'Test set contains no seizure, check train-test split or patient set!'
 
-        auc, detected_szr, num_szr, num_false_alarms, num_non_seizure_intervals = train_cnn(net, train, fdir, i)
-        print(f'auc {auc}, detected {detected_szr}/{num_szr}, FAR {num_false_alarms}/{num_non_seizure_intervals}')
+        auc, operating_pts, det_szrs, fars = train_cnn(net, train, fdir, i)
+        sen_all.append(det_szrs)
+        far_all.append(fars)
 
-        avg_auc += auc
-        total_det_szr += detected_szr
-        total_szr += num_szr
-        total_fa += num_false_alarms
-        total_int += num_non_seizure_intervals
+    sens = []
+    fars = []
+    for i, op in enumerate(operating_pts):
+        s = list(zip(*[sen_all[j][i] for j in range(len(folds))]))
+        sen = sum(s[0])/sum(s[1])
+        f = list(zip(*[far_all[j][i] for j in range(len(folds))]))
+        far = sum(f[0])/sum(f[1])
+        sens.append(sen)
+        fars.append(far)
+        print(f'op = {op:.2f}, sen = {sen}, far = {far}')
 
+    print('auc = ', roc_auc_score(sens, fars))
 
-    avg_auc = avg_auc/len(folds)
-    sensitivity = total_det_szr/total_szr
-    far = total_fa/total_int
-    print(f'Average metrics: avg_auc {avg_auc}, sen {sensitivity} ({total_det_szr}/{total_szr}), FAR {far} ({total_fa}/{total_int})')
 
 
 

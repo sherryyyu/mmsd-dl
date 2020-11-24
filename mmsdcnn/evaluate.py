@@ -17,26 +17,26 @@ import numpy as np
 import torch
 from nutsflow import *
 from nutsml import PrintType, PrintColType
-from mmsdcommon.metrics import roc_auc_score, seizure_metrics
 from mmsdcommon.data import gen_session,  gen_window
 from mmsdcommon.preprocess import remove_non_motor
 from mmsdcnn.constants import PARAMS
 from mmsdcnn.common import MakeBatch, PredBatch, Convert2numpy, Normalise
 
-@nut_processor
-def PreprocessTest(sessions):
-    for session in sessions:
-        label, data = ([session] >> Normalise() >> gen_window(PARAMS.win_len, 0, 0)
-                       >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> Unzip())
-        for i, l in enumerate(label):
-            yield l, data[i]
+
+# @nut_processor
+# def PreprocessTest(sessions):
+#     for session in sessions:
+#         label, data = ([session] >> Normalise() >> gen_window(PARAMS.win_len, 0, 0)
+#                        >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> Unzip())
+#         for i, l in enumerate(label):
+#             yield l, data[i]
 
 
 def evaluate(net, testset, fdir, test_cache):
     net.eval()
     with torch.no_grad():
         tars, preds, probs = (gen_session(testset, fdir) >> Normalise()
-                              >> gen_window(PARAMS.win_len, 0, 0) >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> test_cache
+                              >> gen_window(PARAMS.win_len, 0, 0)  >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> test_cache
                               >> MakeBatch(PARAMS.batch_size) >> PredBatch(net) >> Unzip())
 
         # tars, preds, probs = (gen_session(testset, fdir) >> PreprocessTest() >> test_cache
@@ -46,7 +46,9 @@ def evaluate(net, testset, fdir, test_cache):
         # preds = preds >> Flatten() >> Clone(PARAMS.win_len) >> Collect()
         probs = probs >> Flatten() >> Get(1) >> Clone(PARAMS.win_len) >> Collect()
 
-        auc = roc_auc_score(probs, tars)
+    return tars, probs
 
-    return auc, seizure_metrics(tars, probs, 0.5, 60)
+    #     auc = roc_auc_score(probs, tars)
+    #
+    # return auc, seizure_metrics(tars, probs, PARAMS.operating_pt, 60)
 
