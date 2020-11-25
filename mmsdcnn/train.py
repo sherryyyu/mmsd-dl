@@ -64,7 +64,11 @@ def sample_imbalance(sampling, label, data):
 
 def has_szr(dataset):
     '''Check if the dataset contains seizures, can be slow if dataset is big.'''
-    y = gen_session(dataset, fdir) >> gen_window(PARAMS.win_len, 0, 0) >> remove_non_motor(PARAMS.motor_threshold) >> Get(0) >> Collect()
+    y = (gen_session(dataset, fdir) >>
+         gen_window(PARAMS.win_len, 0, 0) >>
+         remove_non_motor(PARAMS.motor_threshold) >>
+         Get(0) >>
+         Collect())
     all_zeros = not np.array(y).any()
     return not all_zeros
 
@@ -72,18 +76,26 @@ def has_szr(dataset):
 @nut_processor
 def Preprocess(sessions):
     for session in sessions:
-        label, data = ([session] >> Normalise() >> PrintAll() >>  gen_window(PARAMS.win_len, 0.75, 0)
-                       >> remove_non_motor(PARAMS.motor_threshold) >> Convert2numpy() >> Unzip())
+        label, data = ([session] >>
+                       Normalise() >>
+                       PrintAll() >>
+                       gen_window(PARAMS.win_len, 0.75, 0) >>
+                       remove_non_motor(PARAMS.motor_threshold) >>
+                       Convert2numpy() >>
+                       Unzip())
 
         label, data = sample_imbalance('smote', np.array(label), np.array(data))
-        for i, l in enumerate(label):
-            yield l, data[i]
+        for l,d in zip(label, data):
+            yield l,d
 
 
 def train_cnn(net, trainset, fdir, i):
     if PARAMS.verbose > 1:
         p_path = os.path.join(fdir, 'plots', 'fold%d' % i)
-        plotlines = PlotLines((0, 1), layout=(2, 1), figsize=(8, 12), titles=('loss', 'test-auc'), filepath=p_path)
+        plotlines = PlotLines((0, 1), layout=(2, 1),
+                              figsize=(8, 12),
+                              titles=('loss', 'test-auc'),
+                              filepath=p_path)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
@@ -92,15 +104,14 @@ def train_cnn(net, trainset, fdir, i):
 
 
 
-    auc  = operating_pts = sens = fars = None
+    #auc  = operating_pts = sens = fars = None
     for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
         start = time.time()
         net.train()
 
-        losses = (gen_session(trainset, fdir) >> PrintType() >> Preprocess() >> train_cache
-                  >> MakeBatch(PARAMS.batch_size) >> TrainBatch(net, optimizer, criterion) >> Collect())
-
-        loss = np.mean(losses)
+        loss = (gen_session(trainset, fdir) >> PrintType() >>
+                Preprocess() >> train_cache >> MakeBatch(PARAMS.batch_size) >>
+                TrainBatch(net, optimizer, criterion) >> Mean())
 
         if PARAMS.verbose:
             msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f}"
@@ -113,12 +124,15 @@ def train_cnn(net, trainset, fdir, i):
         sen, far = roc_curve(sens, fars)
         auc = roc_auc_score(sen, far)
 
+
         if PARAMS.verbose:
             print('sensitivity', sen)
             print('FAR',far)
             print(f'auc {auc}')
             i = len(operating_pts)//2
-            print(f'Operating point = {operating_pts[i]:.2f}, SEN = {sens[i][0]}/{sens[i][1]}, FAR = {fars[i][0]}/{fars[i][1]}')
+            print(f'Operating point = {operating_pts[i]:.2f},' +
+                   'SEN = {sens[i][0]}/{sens[i][1]},' +
+                   'FAR = {fars[i][0]}/{fars[i][1]}')
 
         if PARAMS.verbose > 1:
             plotlines((loss, auc))
@@ -130,7 +144,8 @@ def train_cnn(net, trainset, fdir, i):
 if __name__ == '__main__':
     fdir = os.path.join(Path.home(), PARAMS.datadir)
     motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
-    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=5, modalities=PARAMS.modalities, szr_sess_only=True,
+    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'), n=5,
+                                modalities=PARAMS.modalities, szr_sess_only=True,
                                 patient_subset=motor_patients)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
