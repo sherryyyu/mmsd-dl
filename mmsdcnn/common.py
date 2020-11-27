@@ -58,8 +58,8 @@ def TrainBatch(batch, net, optimizer, criterion):
 
 @nut_function
 def Convert2numpy(sample):
-    X = np.concatenate(sample[1:], axis=1)
-    y = sample[0]
+    X = np.concatenate(sample[2:], axis=1)
+    y = sample[1]
     return y, X
 
 @nut_function
@@ -68,8 +68,4 @@ def Normalise(sample):
     bvp = normalise_bvp(sample.bvp)
     eda = normalise_eda(sample.eda)
     acc = normalise_acc(sample.acc)
-    sample = sample._replace(hr=hr)
-    sample = sample._replace(eda=eda)
-    sample = sample._replace(bvp=bvp)
-    sample = sample._replace(acc=acc)
-    return sample
+    return sample._replace(hr=hr, eda=eda, bvp=bvp, acc=acc)

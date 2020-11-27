@@ -28,6 +28,7 @@ class HAR_model(nn.Module):
         self.features = nn.Sequential(      # input: 640 * input_size
             nn.Conv1d(input_size, 64, 3, padding=1),
             nn.ReLU(),
+            nn.Dropout(0.5),
             nn.Conv1d(64, 64, 3, padding=1),
             nn.ReLU(),
             nn.Dropout(0.5),
@@ -37,9 +38,9 @@ class HAR_model(nn.Module):
         # TODO: try global average pooling
         self.classifier = nn.Sequential(
             nn.Flatten(),
-        	nn.Linear(64*320, 100),
+        	nn.Linear(64*320, 50),
         	nn.ReLU(),
-        	nn.Linear(100, num_classes),
+        	nn.Linear(50, num_classes),
         	)
 
     def forward(self, x):
