@@ -25,7 +25,7 @@ from nutsml import PrintType, PlotLines
 from mmsdcommon.metrics import sen_far_count, roc_curve, roc_auc_score
 from mmsdcommon.data import load_metadata, gen_session, gen_window
 from mmsdcommon.cross_validate import leave1out
-from mmsdcommon.preprocess import remove_non_motor
+from mmsdcommon.preprocess import remove_non_motor, sample_imbalance
 from mmsdcommon.util import num_channels
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import PARAMS
@@ -34,53 +34,30 @@ from mmsdcnn.evaluate import evaluate
 from mmsdcommon.util import PrintAll
 
 
-def sample_imbalance(sampling, label, data):
-    from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
-    from imblearn.under_sampling import RandomUnderSampler
-
-    methods = {'over': RandomOverSampler, 'smote': SMOTE,
-               'under': RandomUnderSampler, 'adasyn': ADASYN}
-
-    shape = data.shape
-    is_3d = len(shape) == 3
-
-    if is_3d:
-        data = np.reshape(data, (shape[0], shape[1] * shape[2]))
-
-    sampler = methods[sampling]()
-    data, label = sampler.fit_resample(data, label)
-
-    if is_3d:
-        data = np.reshape(data, [-1, shape[1], shape[2]])
-    return label, data
+@nut_processor
+def SampleImb(sample, sampling):
+    chunk_sess = lambda x: (x.metadata['pid'], x.metadata['sid'])
+    for session in sample >> ChunkBy(chunk_sess, list):
+        meta, label, data = session >> Convert2numpy() >> Unzip()
+        label, data = sample_imbalance(sampling, np.array(label),
+                                       np.array(data))
+        for l, d in zip(label, data):
+            yield meta[0], l, d
 
 
-def has_szr(dataset):
+def has_szr(dataset, data_dir):
     '''Check if the dataset contains seizures, can be slow if dataset is big.'''
-    y = (gen_session(dataset, fdir)
+    y = (gen_session(dataset, data_dir)
          >> gen_window(PARAMS.win_len, 0, 0)
          >> remove_non_motor(PARAMS.motor_threshold)
-         >> Get(0) >> Collect())
+         >> Get(1) >> Collect())
     all_zeros = not np.array(y).any()
     return not all_zeros
 
 
-@nut_processor
-def Preprocess(sessions):
-    for session in sessions:
-        label, data = ([session] >> Normalise() >> PrintAll()
-                       >> gen_window(PARAMS.win_len, 0.75, 0)
-                       >> remove_non_motor(PARAMS.motor_threshold)
-                       >> Convert2numpy() >> Unzip())
-
-        label, data = sample_imbalance('smote', np.array(label), np.array(data))
-        for i, l in enumerate(label):
-            yield l, data[i]
-
-
 def train_cnn(net, trainset, fdir, i):
     if PARAMS.verbose > 1:
-        p_path = os.path.join(fdir, 'plots', 'fold%d' % i)
+        p_path = os.path.join(fdir, PARAMS.plotdir, 'fold%d' % i)
         plotlines = PlotLines((0, 1), layout=(2, 1), figsize=(8, 12),
                               titles=('loss', 'test-auc'), filepath=p_path)
 
@@ -93,13 +70,17 @@ def train_cnn(net, trainset, fdir, i):
         os.path.join(fdir, PARAMS.cachedir, 'test', 'fold%d' % i),
         PARAMS.cacheclear)
 
+    data_dir = os.path.join(fdir, PARAMS.datadir)
     auc = operating_pts = sens = fars = None
     for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
         start = time.time()
         net.train()
 
-        losses = (gen_session(trainset, fdir)
-                  >> Preprocess() >> train_cache
+        losses = (gen_session(trainset, data_dir) >> PrintType()
+                  >> Normalise()
+                  >> gen_window(PARAMS.win_len, 0.75, 0)
+                  >> remove_non_motor(PARAMS.motor_threshold)
+                  >> SampleImb('under') >> train_cache
                   >> MakeBatch(PARAMS.batch_size)
                   >> TrainBatch(net, optimizer, criterion)
                   >> Collect())
@@ -111,7 +92,7 @@ def train_cnn(net, trainset, fdir, i):
             elapsed = time.strftime("%M:%S", time.gmtime(time.time() - start))
             print(msg.format(epoch, PARAMS.n_epochs, elapsed, loss))
 
-        tars, probs = evaluate(net, test, fdir, test_cache)
+        tars, probs = evaluate(net, test, data_dir, test_cache)
 
         operating_pts, sens, fars = sen_far_count(tars, probs,
                                                   PARAMS.preictal_len,
@@ -135,9 +116,10 @@ def train_cnn(net, trainset, fdir, i):
 
 
 if __name__ == '__main__':
-    fdir = os.path.join(Path.home(), PARAMS.datadir)
+    rootdir = Path.home()
+    data_dir = os.path.join(rootdir, PARAMS.datadir)
     motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
-    metadata_df = load_metadata(os.path.join(fdir, 'metadata.csv'),
+    metadata_df = load_metadata(os.path.join(data_dir, 'metadata.csv'),
                                 n=5, modalities=PARAMS.modalities,
                                 szr_sess_only=True,
                                 patient_subset=motor_patients)
@@ -153,9 +135,9 @@ if __name__ == '__main__':
         net = create_network(num_channels(PARAMS.modalities), nb_classes)
 
         # disabled because it's slow
-        # assert has_szr(test), 'Test set contains no seizure, check train-test split or patient set!'
+        # assert has_szr(test, data_dir), 'Test set contains no seizure, check train-test split or patient set!'
 
-        auc, operating_pts, det_szrs, fars = train_cnn(net, train, fdir, i)
+        auc, operating_pts, det_szrs, fars = train_cnn(net, train, rootdir, i)
         sen_all.append(det_szrs)
         far_all.append(fars)
 

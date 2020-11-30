@@ -18,23 +18,27 @@ import torch
 from nutsflow import *
 from mmsdcnn.constants import PARAMS, DEVICE
 from mmsdcommon.metrics import roc_auc_score
-from mmsdcommon.preprocess import normalise_acc, normalise_eda, normalise_bvp, normalise_hr
+from mmsdcommon.preprocess import normalise_acc, normalise_eda, normalise_bvp, \
+    normalise_hr
 
 
 def probabilities(pred):
     return torch.softmax(pred, 1)
 
+
 def to_numpy(x):
     return x.detach().cpu().numpy()
+
 
 @nut_processor
 def MakeBatch(samples, batchsize):
     for batch in samples >> Chunk(batchsize):
-        targets, data = batch >> Unzip()
-        data_batch = torch.tensor(data).permute(0,2,1).to(DEVICE)   # change channel location for pytorch compatibility
+        meta, targets, data = batch >> Unzip()
+        data_batch = torch.tensor(data).permute(0, 2, 1).to(
+            DEVICE)  # change channel location for pytorch compatibility
         tar_batch = torch.tensor(targets).to(DEVICE)
-
         yield tar_batch, data_batch
+
 
 @nut_function
 def PredBatch(batch, net):
@@ -56,11 +60,12 @@ def TrainBatch(batch, net, optimizer, criterion):
     optimizer.step()
     return loss.item()
 
+
 @nut_function
 def Convert2numpy(sample):
     X = np.concatenate(sample[2:], axis=1)
-    y = sample[1]
-    return y, X
+    return sample[0], sample[1], X
+
 
 @nut_function
 def Normalise(sample):
