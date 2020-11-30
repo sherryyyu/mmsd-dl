@@ -71,21 +71,18 @@ def train_cnn(net, trainset, fdir, i):
         PARAMS.cacheclear)
 
     data_dir = os.path.join(fdir, PARAMS.datadir)
-    auc = operating_pts = sens = fars = None
     for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
         start = time.time()
         net.train()
 
-        losses = (gen_session(trainset, data_dir) >> PrintType()
+        loss = (gen_session(trainset, data_dir) >> PrintType()
                   >> Normalise()
                   >> gen_window(PARAMS.win_len, 0.75, 0)
                   >> remove_non_motor(PARAMS.motor_threshold)
                   >> SampleImb('under') >> train_cache
                   >> MakeBatch(PARAMS.batch_size)
                   >> TrainBatch(net, optimizer, criterion)
-                  >> Collect())
-
-        loss = np.mean(losses)
+                  >> Mean())
 
         if PARAMS.verbose:
             msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f}"
