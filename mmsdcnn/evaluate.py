@@ -21,6 +21,7 @@ from mmsdcommon.data import gen_session, gen_window
 from mmsdcommon.preprocess import remove_non_motor
 from mmsdcnn.constants import PARAMS
 from mmsdcnn.common import MakeBatch, PredBatch, Convert2numpy, Normalise
+from mmsdcommon.metrics import szr_metrics
 
 
 def evaluate(net, testset, fdir, test_cache):
@@ -35,7 +36,9 @@ def evaluate(net, testset, fdir, test_cache):
                               >> PredBatch(net) >> Unzip())
 
         tars = tars >> Flatten() >> Clone(PARAMS.win_len) >> Collect()
-        probs = probs >> Flatten() >> Get(1) >> Clone(
-            PARAMS.win_len) >> Collect()
+        probs = (probs >> Flatten() >> Get(1)
+                 >> Clone(PARAMS.win_len) >> Collect())
+    metrics = szr_metrics(tars, probs,
+                          PARAMS.preictal_len, PARAMS.postictal_len)
+    return metrics
 
-    return tars, probs

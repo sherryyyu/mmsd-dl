@@ -19,7 +19,7 @@ from nutsml.config import Config
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 PARAMS = Config(
-          n_epochs = 100,
+          n_epochs = 15,
           lr= 1e-3,
           batch_size= 256,
           win_len = 10,
