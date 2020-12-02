@@ -28,7 +28,7 @@ from mmsdcommon.cross_validate import leave1out
 from mmsdcommon.preprocess import remove_non_motor, sample_imbalance
 from mmsdcommon.util import num_channels
 from mmsdcnn.network import create_network
-from mmsdcnn.constants import PARAMS
+from mmsdcnn.constants import CFG
 from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy, Normalise
 from mmsdcnn.evaluate import evaluate
 from mmsdcnn.util import print_metrics, print_all_folds
@@ -47,16 +47,15 @@ def SampleImb(sample, sampling):
 def has_szr(dataset, data_dir):
     '''Check if the dataset contains seizures, can be slow if dataset is big.'''
     y = (gen_session(dataset, data_dir)
-         >> gen_window(PARAMS.win_len, 0, 0)
-         >> remove_non_motor(PARAMS.motor_threshold)
+         >> gen_window(CFG.win_len, 0, 0)
+         >> remove_non_motor(CFG.motor_threshold)
          >> Get(1) >> Collect())
     all_zeros = not np.array(y).any()
     return not all_zeros
 
 
-def optimise(nb_classes, trainset, rootdir):
+def optimise(nb_classes, trainset):
     folds = leave1out(trainset, 'patient')
-
     overall, best_net, best_auc = [], None, 0
     for i, (train, val) in enumerate(folds):
         print(f"Fold {i + 1}/{len(folds)}: loading train patients "
@@ -65,8 +64,8 @@ def optimise(nb_classes, trainset, rootdir):
         # disabled because it's slow
         # assert has_szr(val, data_dir), 'Val set contains no seizure, check train-test split or patient set!'
 
-        net = create_network(num_channels(PARAMS.modalities), nb_classes)
-        metrics = train_network(net, train, val, rootdir, i)
+        net = create_network(num_channels(CFG.modalities), nb_classes)
+        metrics = train_network(net, train, val, i)
         overall.append(
             (metrics['sen_cnt'], metrics['far_cnt'], metrics['thresholds']))
 
@@ -79,67 +78,59 @@ def optimise(nb_classes, trainset, rootdir):
     return best_net
 
 
-def train_network(net, trainset, valset, fdir, i):
-    p_path = os.path.join(fdir, PARAMS.plotdir, 'fold%d' % i)
+def train_network(net, trainset, valset, i):
+    p_path = os.path.join(CFG.plotdir, 'fold%d' % i)
     plotlines = PlotLines((0, 1), layout=(2, 1), figsize=(8, 12),
                           titles=('loss', 'val-auc'), filepath=p_path)
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters(), PARAMS.lr)
-    train_cache = Cache(
-        os.path.join(fdir, PARAMS.cachedir, 'train', 'fold%d' % i),
-        PARAMS.cacheclear)
-    val_cache = Cache(
-        os.path.join(fdir, PARAMS.cachedir, 'val', 'fold%d' % i),
-        PARAMS.cacheclear)
+    optimizer = torch.optim.Adam(net.parameters(), CFG.lr)
 
-    data_dir = os.path.join(fdir, PARAMS.datadir)
+    train_cache = Cache(CFG.traincachedir + str(i), CFG.cacheclear)
+    val_cache = Cache(CFG.valcachedir + str(i), CFG.cacheclear)
 
-    for epoch in range(PARAMS.n_epochs) >> PrintProgress(PARAMS.n_epochs):
+    for epoch in range(CFG.n_epochs) >> PrintProgress(CFG.n_epochs):
         start = time.time()
         net.train()
 
-        loss = (gen_session(trainset, data_dir) >> PrintType()
+        loss = (gen_session(trainset, CFG.datadir) >> PrintType()
                 >> Normalise()
-                >> gen_window(PARAMS.win_len, 0.75, 0)
-                >> remove_non_motor(PARAMS.motor_threshold)
+                >> gen_window(CFG.win_len, 0.75, 0)
+                >> remove_non_motor(CFG.motor_threshold)
                 >> SampleImb('under') >> train_cache
-                >> MakeBatch(PARAMS.batch_size)
+                >> Shuffle(100)
+                >> MakeBatch(CFG.batch_size)
                 >> TrainBatch(net, optimizer, criterion)
                 >> Mean())
 
-        if PARAMS.verbose:
+        if CFG.verbose:
             msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f}"
             elapsed = time.strftime("%M:%S", time.gmtime(time.time() - start))
-            print(msg.format(epoch, PARAMS.n_epochs, elapsed, loss))
+            print(msg.format(epoch, CFG.n_epochs, elapsed, loss))
 
-        metrics = evaluate(net, valset, data_dir, val_cache)
+        metrics = evaluate(net, valset, CFG.datadir, val_cache)
         plotlines((loss, metrics['auc']))
 
-        if PARAMS.verbose > 1:
+        if CFG.verbose > 1:
             print_metrics(metrics)
 
     return metrics
 
 
 if __name__ == '__main__':
-    rootdir = Path.home()
-    data_dir = os.path.join(rootdir, PARAMS.datadir)
     motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
-    metadata_df = load_metadata(os.path.join(data_dir, 'metadata.csv'),
-                                n=None, modalities=PARAMS.modalities,
+    metapath = os.path.join(CFG.datadir, 'metadata.csv')
+    metadata_df = load_metadata(metapath, n=4,
+                                modalities=CFG.modalities,
                                 szr_sess_only=True,
                                 patient_subset=motor_patients)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
     for i, (train, test) in enumerate(folds):
-        net = optimise(nb_classes, train, rootdir)
-
-        test_cache = Cache(
-            os.path.join(rootdir, PARAMS.cachedir, 'test', 'tfold%d' % i),
-            PARAMS.cacheclear)
-        metrics = evaluate(net, test, data_dir, test_cache)
+        net = optimise(nb_classes, train)
+        test_cache = Cache(CFG.testcachedir + str(i), CFG.cacheclear)
+        metrics = evaluate(net, test, CFG.datadir, test_cache)
         break
 
 

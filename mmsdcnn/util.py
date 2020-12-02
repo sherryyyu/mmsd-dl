@@ -20,6 +20,7 @@ from nutsflow import *
 def one_hot(y, nb_classes):
     return np.array([1 if i==y else 0 for i in range(nb_classes)])
 
+
 def print_metrics(metrics):
     print('sensitivity', metrics['sens'])
     print('FAR', metrics['fars'])
@@ -31,16 +32,18 @@ def print_metrics(metrics):
           f'SEN = {sen_cnt[i][0]}/{sen_cnt[i][1]}, '
           f'FAR = {far_cnt[i][0]}/{far_cnt[i][1]}')
 
+def calc_percent(cnts, num_folds, i):
+    unzip = lambda l: list(zip(*l))
+    s = unzip([cnts[j][i] for j in range(num_folds)])
+    return sum(s[0]) / sum(s[1])
 
 def print_all_folds(metrics, num_folds):
     sens, fars, thresholds = metrics >> Unzip()
     thresholds = thresholds[0]
     table = []
     for i, t in enumerate(thresholds):
-        s = list(zip(*[sens[j][i] for j in range(num_folds)]))
-        sen = sum(s[0]) / sum(s[1])
-        f = list(zip(*[fars[j][i] for j in range(num_folds)]))
-        far = sum(f[0]) / sum(f[1])
+        sen = calc_percent(sens, num_folds, i)
+        far = calc_percent(fars, num_folds, i)
         table.append([t, sen, far])
 
     table = tabulate(table, ['thresholds', 'SEN', 'FAR'], floatfmt='.2f')

@@ -16,7 +16,7 @@ Function:
 import numpy as np
 import torch
 from nutsflow import *
-from mmsdcnn.constants import PARAMS, DEVICE
+from mmsdcnn.constants import CFG, DEVICE
 from mmsdcommon.metrics import roc_auc_score
 from mmsdcommon.preprocess import normalise_acc, normalise_eda, normalise_bvp, \
     normalise_hr
