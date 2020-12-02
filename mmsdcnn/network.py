@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 from mmsdcnn.constants import DEVICE
 from pytorch_model_summary import summary
+from time import sleep
 
 
 class HAR_model(nn.Module):
@@ -56,6 +57,20 @@ def create_network(input_dim, num_classes):
     model.to(DEVICE)
     print_summary(model, input_dim)
     return model.double()
+
+def save_wgts(net, filepath='weights.pt'):
+    for i in range(5):
+        try:
+            torch.save(net.state_dict(), filepath)
+            break
+        except:
+            print('Could not save weights file. Retrying...', i)
+            sleep(1)
+
+
+def load_wgts(net, filepath='weights.pt'):
+    net.load_state_dict(torch.load(filepath))
+
 
 
 if __name__ == '__main__':

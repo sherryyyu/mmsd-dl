@@ -15,13 +15,11 @@ Function:
 
 import time
 import os
-from pathlib import Path
 
 import numpy as np
 import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
-
 
 from mmsdcommon.data import load_metadata, gen_session, gen_window
 from mmsdcommon.cross_validate import leave1out
@@ -32,9 +30,10 @@ from mmsdcnn.constants import CFG
 from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy, Normalise
 from mmsdcnn.evaluate import evaluate
 from mmsdcnn.util import print_metrics, print_all_folds
+from mmsdcnn.network import save_wgts, load_wgts
 
 @nut_processor
-def SampleImb(sample, sampling):
+def BalanceSession(sample, sampling):
     same_sess = lambda x: (x.metadata['pid'], x.metadata['sid'])
     for session in sample >> ChunkBy(same_sess, list):
         meta, label, data = session >> Convert2numpy() >> Unzip()
@@ -56,7 +55,7 @@ def has_szr(dataset, data_dir):
 
 def optimise(nb_classes, trainset):
     folds = leave1out(trainset, 'patient')
-    overall, best_net, best_auc = [], None, 0
+    overall, best_auc = [], 0
     for i, (train, val) in enumerate(folds):
         print(f"Fold {i + 1}/{len(folds)}: loading train patients "
               f"{train['patient'].unique()} "
@@ -67,15 +66,16 @@ def optimise(nb_classes, trainset):
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics = train_network(net, train, val, i)
         overall.append(
-            (metrics['sen_cnt'], metrics['far_cnt'], metrics['thresholds']))
+            (metrics['sen_cnt'], metrics['far_cnt'],
+             metrics['thresholds'], metrics['auc']))
 
         if metrics['auc'] > best_auc:
-            # TODO: change this placeholder save to save_wgts(net)
-            best_net, best_auc = net, metrics['auc']
+            best_auc = metrics['auc']
+            save_wgts(net)
 
     print_all_folds(overall, len(folds))
 
-    return best_net
+    return best_auc
 
 
 def train_network(net, trainset, valset, i):
@@ -97,7 +97,7 @@ def train_network(net, trainset, valset, i):
                 >> Normalise()
                 >> gen_window(CFG.win_len, 0.75, 0)
                 >> remove_non_motor(CFG.motor_threshold)
-                >> SampleImb('under') >> train_cache
+                >> BalanceSession('smote') >> train_cache
                 >> Shuffle(100)
                 >> MakeBatch(CFG.batch_size)
                 >> TrainBatch(net, optimizer, criterion)
@@ -118,9 +118,10 @@ def train_network(net, trainset, valset, i):
 
 
 if __name__ == '__main__':
-    motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
+    # motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
+    motor_patients = ['C189', 'C241', 'C242', 'C299', 'C305', 'C421', 'C433']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
-    metadata_df = load_metadata(metapath, n=4,
+    metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=True,
                                 patient_subset=motor_patients)
@@ -128,8 +129,10 @@ if __name__ == '__main__':
     nb_classes = 2
 
     for i, (train, test) in enumerate(folds):
-        net = optimise(nb_classes, train)
+        best_auc = optimise(nb_classes, train)
         test_cache = Cache(CFG.testcachedir + str(i), CFG.cacheclear)
+        net = create_network(num_channels(CFG.modalities), nb_classes)
+        load_wgts(net)
         metrics = evaluate(net, test, CFG.datadir, test_cache)
         break
 

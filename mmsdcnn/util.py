@@ -38,7 +38,7 @@ def calc_percent(cnts, num_folds, i):
     return sum(s[0]) / sum(s[1])
 
 def print_all_folds(metrics, num_folds):
-    sens, fars, thresholds = metrics >> Unzip()
+    sens, fars, thresholds, aucs = metrics >> Unzip()
     thresholds = thresholds[0]
     table = []
     for i, t in enumerate(thresholds):
@@ -48,3 +48,4 @@ def print_all_folds(metrics, num_folds):
 
     table = tabulate(table, ['thresholds', 'SEN', 'FAR'], floatfmt='.2f')
     print(table)
+    print('Average AUC:', np.mean(aucs))
