@@ -24,7 +24,7 @@ from nutsml import PrintType, PlotLines
 from mmsdcommon.data import load_metadata, gen_session, gen_window
 from mmsdcommon.cross_validate import leave1out
 from mmsdcommon.preprocess import remove_non_motor, sample_imbalance
-from mmsdcommon.util import num_channels
+from mmsdcommon.util import num_channels, PrintAll
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import CFG
 from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy, Normalise
@@ -45,6 +45,7 @@ def BalanceSession(sample, sampling):
 
 def has_szr(dataset, data_dir):
     '''Check if the dataset contains seizures, can be slow if dataset is big.'''
+    print('val check')
     y = (gen_session(dataset, data_dir)
          >> gen_window(CFG.win_len, 0, 0)
          >> remove_non_motor(CFG.motor_threshold)
@@ -60,8 +61,6 @@ def optimise(nb_classes, trainset):
         print(f"Fold {i + 1}/{len(folds)}: loading train patients "
               f"{train['patient'].unique()} "
               f"and validation patients {val['patient'].unique()}... ")
-        # disabled because it's slow
-        # assert has_szr(val, data_dir), 'Val set contains no seizure, check train-test split or patient set!'
 
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics = train_network(net, train, val, i)
@@ -94,11 +93,11 @@ def train_network(net, trainset, valset, i):
         net.train()
 
         loss = (gen_session(trainset, CFG.datadir) >> PrintType()
-                >> Normalise()
+                >> Normalise() >> PrintAll()
                 >> gen_window(CFG.win_len, 0.75, 0)
                 >> remove_non_motor(CFG.motor_threshold)
                 >> BalanceSession('smote') >> train_cache
-                >> Shuffle(100)
+                >> Shuffle(1000)
                 >> MakeBatch(CFG.batch_size)
                 >> TrainBatch(net, optimizer, criterion)
                 >> Mean())
@@ -118,8 +117,8 @@ def train_network(net, trainset, valset, i):
 
 
 if __name__ == '__main__':
-    # motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
-    motor_patients = ['C189', 'C241', 'C242', 'C299', 'C305', 'C421', 'C433']
+    motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
+    # motor_patients = ['C189', 'C241', 'C242',  'C305']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
