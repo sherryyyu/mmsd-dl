@@ -88,14 +88,16 @@ def train_network(net, trainset, valset, i):
     train_cache = Cache(CFG.traincachedir + str(i), CFG.cacheclear)
     val_cache = Cache(CFG.valcachedir + str(i), CFG.cacheclear)
 
-    for epoch in range(CFG.n_epochs) >> PrintProgress(CFG.n_epochs):
+    n_sessions = len(trainset.index)
+
+    for epoch in range(CFG.n_epochs) :
         start = time.time()
         net.train()
 
-        loss = (gen_session(trainset, CFG.datadir) >> PrintType()
-                >> Normalise() >> PrintAll()
+        loss = (gen_session(trainset, CFG.datadir) >> PrintProgress(n_sessions)
+                >> Normalise()
                 >> gen_window(CFG.win_len, 0.75, 0)
-                >> remove_non_motor(CFG.motor_threshold)
+                # >> remove_non_motor(CFG.motor_threshold)
                 >> BalanceSession('smote') >> train_cache
                 >> Shuffle(1000)
                 >> MakeBatch(CFG.batch_size)

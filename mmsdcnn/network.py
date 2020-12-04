@@ -50,7 +50,8 @@ class HAR_model(nn.Module):
         return x
 
 def print_summary(net, input_dim):
-    print(summary(net, torch.zeros((1, input_dim, 640)), show_input=False))
+    t = torch.zeros((1, input_dim, 640)).to(DEVICE)
+    print(summary(net, t, show_input=False))
 
 def create_network(input_dim, num_classes):
     model = HAR_model(input_dim, num_classes)

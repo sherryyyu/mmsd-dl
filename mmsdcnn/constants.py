@@ -20,6 +20,8 @@ from pathlib import Path
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ROOT = '/Users/shuangyu/datasets/'
 
+# ROOT = '/fast1/'  # On ER01
+
 CFG = Config(
           n_epochs = 50,
           lr= 1e-3,
