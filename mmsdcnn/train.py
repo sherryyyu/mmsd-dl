@@ -13,9 +13,6 @@ Function:
    Define some functions for neural network training
 '''
 
-import warnings
-warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-
 import time
 import os
 
