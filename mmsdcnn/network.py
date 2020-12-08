@@ -18,6 +18,7 @@ import torch.nn as nn
 from mmsdcnn.constants import DEVICE
 from pytorch_model_summary import summary
 from time import sleep
+import os
 
 
 class HAR_model(nn.Module):
@@ -56,7 +57,7 @@ def print_summary(net, input_dim):
 def create_network(input_dim, num_classes):
     model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
-    print_summary(model, input_dim)
+    # print_summary(model, input_dim)
     return model.double()
 
 def save_wgts(net, filepath='weights.pt'):
@@ -72,6 +73,23 @@ def save_wgts(net, filepath='weights.pt'):
 def load_wgts(net, filepath='weights.pt'):
     net.load_state_dict(torch.load(filepath))
 
+def save_ckp(state, ckpdir, fold_no):
+    '''Save checkpoint'''
+    if not os.path.exists(ckpdir):
+        os.makedirs(ckpdir)
+    torch.save(state, f'{ckpdir}/{fold_no}')
+
+def load_ckp(ckpdir, net, optimizer, best_auc, fold_no):
+    '''Load checkpoint'''
+    chppath = f'{ckpdir}/{fold_no}'
+    if os.path.isfile(chppath):
+        checkpoint = torch.load(chppath)
+        net.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        best_auc = checkpoint['best_auc']
+        return net, optimizer, checkpoint['epoch'], best_auc, checkpoint['metrics']
+    else:
+        return net, optimizer, 0, best_auc, None
 
 
 if __name__ == '__main__':
