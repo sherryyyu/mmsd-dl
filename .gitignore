@@ -3,6 +3,7 @@ __pycache__/
 .idea/
 cache_*/
 vds.egg-info/
+checkpoints/
 *.py[cod]
 *$py.class
 *.png

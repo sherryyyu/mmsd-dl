@@ -21,9 +21,9 @@ import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
 
-from mmsdcommon.data import load_metadata, gen_session, gen_window
+from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import leave1out
-from mmsdcommon.preprocess import remove_non_motor, sample_imbalance
+from mmsdcommon.preprocess import FilterNonMotor, sample_imbalance
 from mmsdcommon.util import num_channels, PrintAll
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import CFG
@@ -46,10 +46,9 @@ def BalanceSession(sample, sampling):
 
 def has_szr(dataset, data_dir):
     '''Check if the dataset contains seizures, can be slow if dataset is big.'''
-    print('val check')
     y = (gen_session(dataset, data_dir)
-         >> gen_window(CFG.win_len, 0, 0)
-         >> remove_non_motor(CFG.motor_threshold)
+         >> GenWindow(CFG.win_len, 0, 0)
+         >> FilterNonMotor(CFG.motor_threshold)
          >> Get(1) >> Collect())
     all_zeros = not np.array(y).any()
     return not all_zeros
@@ -75,33 +74,49 @@ def optimise(nb_classes, trainset):
     return best_auc
 
 
-def train_network(net, trainset, valset, best_auc, i):
-    p_path = os.path.join(CFG.plotdir, 'fold%d' % i)
+def create_cache(cfg, fold_no, is_train):
+    cachedir = cfg.traincachedir if is_train else cfg.valcachedir
+    return Cache(cachedir + str(fold_no), CFG.cacheclear)
+
+
+def get_state(i, epoch, best_auc, metrics, net, optimizer):
+    state = {
+        'fold_no': i,
+        'epoch': epoch + 1,
+        'best_auc': best_auc,
+        'metrics': metrics,
+        'state_dict': net.state_dict(),
+        'optimizer': optimizer.state_dict(),
+    }
+    return state
+
+
+def train_network(net, trainset, valset, best_auc, fold_no):
+    p_path = os.path.join(CFG.plotdir, 'fold%d' % fold_no)
     plotlines = PlotLines((0, 1), layout=(2, 1), figsize=(8, 12),
                           titles=('loss', 'val-auc'), filepath=p_path)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), CFG.lr)
 
-    net, optimizer, start_epoch, best_auc, metrics = load_ckp(CFG.ckpdir, net,
-                                                              optimizer,
-                                                              best_auc, i)
+    state = load_ckp(CFG.ckpdir, net, optimizer, best_auc, fold_no)
+    net, optimizer, start_epoch, best_auc, metrics = state
 
-    train_cache = Cache(CFG.traincachedir + str(i), CFG.cacheclear)
-    val_cache = Cache(CFG.valcachedir + str(i), CFG.cacheclear)
+    train_cache = create_cache(CFG, fold_no, True)
+    val_cache = create_cache(CFG, fold_no, False)
 
     n_sessions = len(trainset.index)
 
     for epoch in range(start_epoch, CFG.n_epochs):
-        start = time.time()
+        t = Timer()
         net.train()
 
         loss = (gen_session(trainset, CFG.datadir)
                 >> PrintProgress(n_sessions)
                 # >> PrintType()
                 >> Normalise()
-                >> gen_window(CFG.win_len, 0.75, 0)
-                >> remove_non_motor(CFG.motor_threshold)
+                >> GenWindow(CFG.win_len, CFG.win_overlap)
+                >> FilterNonMotor(CFG.motor_threshold)
                 >> BalanceSession('under') >> train_cache
                 >> Shuffle(50)
                 >> MakeBatch(CFG.batch_size)
@@ -112,18 +127,10 @@ def train_network(net, trainset, valset, best_auc, i):
 
         if CFG.verbose:
             msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
-            elapsed = time.strftime("%M:%S", time.gmtime(time.time() - start))
-            print(msg.format(epoch, CFG.n_epochs, elapsed, loss, metrics['auc']))
+            print(msg.format(epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
 
-        checkpoint = {
-            'fold_no': i,
-            'epoch': epoch + 1,
-            'best_auc': best_auc,
-            'metrics': metrics,
-            'state_dict': net.state_dict(),
-            'optimizer': optimizer.state_dict(),
-        }
-        save_ckp(checkpoint, CFG.ckpdir, i)
+        state = get_state(fold_no, epoch, best_auc, metrics, net, optimizer)
+        save_ckp(state, CFG.ckpdir, fold_no)
 
         if metrics['auc'] > best_auc:
             best_auc = metrics['auc']
