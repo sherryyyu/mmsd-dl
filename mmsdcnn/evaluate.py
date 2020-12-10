@@ -39,7 +39,6 @@ def evaluate(net, testset, fdir, test_cache):
         tars = tars >> Flatten() >> Clone(CFG.win_len) >> Collect()
         probs = (probs >> Flatten() >> Get(1)
                  >> Clone(CFG.win_len) >> Collect())
-    metrics = szr_metrics(tars, probs,
-                          CFG.preictal_len, CFG.postictal_len)
+    metrics = szr_metrics(tars, probs, CFG.preictal_len, CFG.postictal_len)
     return metrics
 

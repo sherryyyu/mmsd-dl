@@ -149,7 +149,7 @@ if __name__ == '__main__':
     motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
     # motor_patients = ['C189', 'C241', 'C242',  'C305']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
-    metadata_df = load_metadata(metapath, n=5,
+    metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=True,
                                 patient_subset=motor_patients)

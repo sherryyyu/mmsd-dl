@@ -15,7 +15,7 @@ Function:
 
 import torch
 import torch.nn as nn
-from mmsdcnn.constants import DEVICE
+from mmsdcnn.constants import DEVICE, CFG
 from pytorch_model_summary import summary
 from time import sleep
 import os
@@ -33,21 +33,24 @@ class HAR_model(nn.Module):
             nn.Dropout(0.5),
             nn.Conv1d(64, 64, 3, padding=1),
             nn.ReLU(),
-            nn.Dropout(0.5),
             nn.MaxPool1d(2)
             )
         # Classify output, fully connected layers
-        # TODO: try global average pooling
         self.classifier = nn.Sequential(
             nn.Flatten(),
         	nn.Linear(64*320, 50),
         	nn.ReLU(),
         	nn.Linear(50, num_classes),
         	)
+        self.gap = nn.Sequential(
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten(),
+            nn.Linear(64, num_classes),
+        )
 
     def forward(self, x):
         x = self.features(x)
-        x = self.classifier(x)
+        x = self.gap(x)
         return x
 
 def print_summary(net, input_dim):
@@ -57,7 +60,8 @@ def print_summary(net, input_dim):
 def create_network(input_dim, num_classes):
     model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
-    # print_summary(model, input_dim)
+    if CFG.verbose > 1:
+        print_summary(model, input_dim)
     return model.double()
 
 def save_wgts(net, filepath='weights.pt'):
