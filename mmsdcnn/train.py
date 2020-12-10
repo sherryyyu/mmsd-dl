@@ -20,6 +20,7 @@ import numpy as np
 import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
+from torch.utils.tensorboard import SummaryWriter
 
 from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import leave1out
@@ -90,11 +91,13 @@ def get_state(i, epoch, best_auc, metrics, net, optimizer):
     }
     return state
 
+def log2tensorboard(writer, epoch, loss, metrics):
+    writer.add_scalar("Loss/train", loss, epoch)
+    writer.add_scalar("AUC/val", metrics['auc'], epoch)
+
 
 def train_network(net, trainset, valset, best_auc, fold_no):
-    p_path = os.path.join(CFG.plotdir, 'fold%d' % fold_no)
-    plotlines = PlotLines((0, 1), layout=(2, 1), figsize=(8, 12),
-                          titles=('loss', 'val-auc'), filepath=p_path)
+    writer = SummaryWriter()
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), CFG.lr)
@@ -113,7 +116,6 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
         loss = (gen_session(trainset, CFG.datadir)
                 >> PrintProgress(n_sessions)
-                # >> PrintType()
                 >> Normalise()
                 >> GenWindow(CFG.win_len, CFG.win_overlap)
                 >> FilterNonMotor(CFG.motor_threshold)
@@ -124,6 +126,7 @@ def train_network(net, trainset, valset, best_auc, fold_no):
                 >> Mean())
 
         metrics = evaluate(net, valset, CFG.datadir, val_cache)
+        log2tensorboard(writer, epoch, loss, metrics)
 
         if CFG.verbose:
             msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
@@ -136,11 +139,9 @@ def train_network(net, trainset, valset, best_auc, fold_no):
             best_auc = metrics['auc']
             save_wgts(net)
 
-        plotlines((loss, metrics['auc']))
-
         if CFG.verbose > 1:
             print_metrics(metrics)
-
+    writer.close()
     return metrics, best_auc
 
 
