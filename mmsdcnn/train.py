@@ -146,7 +146,7 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
 
 if __name__ == '__main__':
-    motor_patients = ['C241', 'C242', 'C245', 'C290', 'C423', 'C433']
+    motor_patients = ['C242', 'C245', 'C290', 'C423', 'C433']
     # motor_patients = ['C189', 'C241', 'C242',  'C305']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,

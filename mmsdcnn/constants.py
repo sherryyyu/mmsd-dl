@@ -23,7 +23,7 @@ ROOT = '/Users/shuangyu/datasets/'
 # ROOT = '/fast1/'  # On ER01
 
 CFG = Config(
-          n_epochs = 30,
+          n_epochs = 25,
           lr= 1e-3,
           batch_size= 32,
           verbose = 1,
