@@ -48,7 +48,7 @@ def BalanceSession(sample, sampling):
 def has_szr(dataset, data_dir):
     '''Check if the dataset contains seizures, can be slow if dataset is big.'''
     y = (gen_session(dataset, data_dir)
-         >> GenWindow(CFG.win_len, 0, 0)
+         >> GenWindow(CFG.win_len, CFG.win_len, 0)
          >> FilterNonMotor(CFG.motor_threshold)
          >> Get(1) >> Collect())
     all_zeros = not np.array(y).any()
@@ -116,8 +116,9 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
         loss = (gen_session(trainset, CFG.datadir)
                 >> PrintProgress(n_sessions)
+                # >> PrintType()
                 >> Normalise()
-                >> GenWindow(CFG.win_len, CFG.win_overlap)
+                >> GenWindow(CFG.win_len, CFG.win_step)
                 >> FilterNonMotor(CFG.motor_threshold)
                 >> BalanceSession('under') >> train_cache
                 >> Shuffle(50)

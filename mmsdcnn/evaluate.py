@@ -26,11 +26,11 @@ from mmsdcommon.metrics import szr_metrics
 
 def evaluate(net, testset, fdir, test_cache):
     net.eval()
-    win_overlap = 0
+    win_step = 10
     with torch.no_grad():
         tars, preds, probs = (gen_session(testset, fdir)
                               >> Normalise()
-                              >> GenWindow(CFG.win_len, win_overlap)
+                              >> GenWindow(CFG.win_len, win_step)
                               >> FilterNonMotor(CFG.motor_threshold)
                               >> Convert2numpy() >> test_cache
                               >> MakeBatch(CFG.batch_size)
