@@ -23,25 +23,26 @@ import os
 
 class HAR_model(nn.Module):
     """Model for human-activity-recognition."""
+
     def __init__(self, input_size, num_classes):
         super().__init__()
 
         # Extract features, 1D conv layers
-        self.features = nn.Sequential(      # input: 640 * input_size
+        self.features = nn.Sequential(  # input: 640 * input_size
             nn.Conv1d(input_size, 64, 3, padding=1),
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Conv1d(64, 64, 3, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(2)
-            )
+        )
         # Classify output, fully connected layers
         self.classifier = nn.Sequential(
             nn.Flatten(),
-        	nn.Linear(64*320, 50),
-        	nn.ReLU(),
-        	nn.Linear(50, num_classes),
-        	)
+            nn.Linear(64 * 320, 50),
+            nn.ReLU(),
+            nn.Linear(50, num_classes),
+        )
         self.gap = nn.Sequential(
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
@@ -53,9 +54,11 @@ class HAR_model(nn.Module):
         x = self.gap(x)
         return x
 
+
 def print_summary(net, input_dim):
     t = torch.zeros((1, input_dim, 640)).to(DEVICE)
     print(summary(net, t, show_input=False))
+
 
 def create_network(input_dim, num_classes):
     model = HAR_model(input_dim, num_classes)
@@ -63,6 +66,7 @@ def create_network(input_dim, num_classes):
     if CFG.verbose > 1:
         print_summary(model, input_dim)
     return model.double()
+
 
 def save_wgts(net, filepath='weights.pt'):
     for i in range(5):
@@ -77,11 +81,13 @@ def save_wgts(net, filepath='weights.pt'):
 def load_wgts(net, filepath='weights.pt'):
     net.load_state_dict(torch.load(filepath))
 
+
 def save_ckp(state, ckpdir, fold_no):
     '''Save checkpoint'''
     if not os.path.exists(ckpdir):
         os.makedirs(ckpdir)
     torch.save(state, f'{ckpdir}/{fold_no}')
+
 
 def load_ckp(ckpdir, net, optimizer, best_auc, fold_no):
     '''Load checkpoint'''
@@ -91,7 +97,8 @@ def load_ckp(ckpdir, net, optimizer, best_auc, fold_no):
         net.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         best_auc = checkpoint['best_auc']
-        return net, optimizer, checkpoint['epoch'], best_auc, checkpoint['metrics']
+        return net, optimizer, checkpoint['epoch'], best_auc, checkpoint[
+            'metrics']
     else:
         return net, optimizer, 0, best_auc, None
 

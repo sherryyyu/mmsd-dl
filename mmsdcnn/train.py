@@ -114,13 +114,13 @@ def train_network(net, trainset, valset, best_auc, fold_no):
         t = Timer()
         net.train()
 
-        loss = (gen_session(trainset, CFG.datadir)
+        loss = (gen_session(trainset, CFG.datadir, relabelling=CFG.szr_types)
                 >> PrintProgress(n_sessions)
-                # >> PrintType()
                 >> Normalise()
                 >> GenWindow(CFG.win_len, CFG.win_step)
-                >> FilterNonMotor(CFG.motor_threshold)
-                >> BalanceSession('under') >> train_cache
+                # >> FilterNonMotor(CFG.motor_threshold)
+                >> BalanceSession('under')
+                >> train_cache
                 >> Shuffle(50)
                 >> MakeBatch(CFG.batch_size)
                 >> TrainBatch(net, optimizer, criterion)
@@ -147,13 +147,13 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
 
 if __name__ == '__main__':
-    motor_patients = ['C242', 'C245', 'C290', 'C423', 'C433']
-    # motor_patients = ['C189', 'C241', 'C242',  'C305']
+    # gtc_patients = ['C242', 'C245', 'C290', 'C333', 'C380', 'C387']
+    gtc_patients = ['C189', 'C290', 'C333', 'C380', 'C387']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=True,
-                                patient_subset=motor_patients)
+                                patient_subset=gtc_patients)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 

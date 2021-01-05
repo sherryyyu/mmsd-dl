@@ -28,10 +28,11 @@ def evaluate(net, testset, fdir, test_cache):
     net.eval()
     win_step = 10
     with torch.no_grad():
-        tars, preds, probs = (gen_session(testset, fdir)
+        tars, preds, probs = (gen_session(testset, fdir,
+                                          relabelling=CFG.szr_types)
                               >> Normalise()
                               >> GenWindow(CFG.win_len, win_step)
-                              >> FilterNonMotor(CFG.motor_threshold)
+                              # >> FilterNonMotor(CFG.motor_threshold)
                               >> Convert2numpy() >> test_cache
                               >> MakeBatch(CFG.batch_size)
                               >> PredBatch(net) >> Unzip())
