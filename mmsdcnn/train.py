@@ -55,7 +55,12 @@ def has_szr(dataset, data_dir):
     return not all_zeros
 
 
-def optimise(nb_classes, trainset):
+def metrics2print(metrics):
+    return (metrics['sen_cnt'], metrics['far_cnt'],
+            metrics['thresholds'], metrics['auc'])
+
+
+def optimise(nb_classes, trainset, n_fold):
     folds = leave1out(trainset, 'patient')
     all_metrics, best_auc = [], 0
     for i, (train, val) in enumerate(folds):
@@ -64,11 +69,9 @@ def optimise(nb_classes, trainset):
               f"and validation patients {val['patient'].unique()}... ")
 
         net = create_network(num_channels(CFG.modalities), nb_classes)
-        metrics, best_auc = train_network(net, train, val, best_auc, i)
-        all_metrics.append(
-            (metrics['sen_cnt'], metrics['far_cnt'],
-             metrics['thresholds'],
-             metrics['auc']))
+        i_fold = str(n_fold) + '-' + str(i)
+        metrics, best_auc = train_network(net, train, val, best_auc, i_fold)
+        all_metrics.append(metrics2print(metrics))
 
     print_all_folds(all_metrics, len(folds))
 
@@ -90,6 +93,7 @@ def get_state(i, epoch, best_auc, metrics, net, optimizer):
         'optimizer': optimizer.state_dict(),
     }
     return state
+
 
 def log2tensorboard(writer, epoch, loss, metrics):
     writer.add_scalar("Loss/train", loss, epoch)
@@ -148,7 +152,7 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
 if __name__ == '__main__':
     # gtc_patients = ['C242', 'C245', 'C290', 'C333', 'C380', 'C387']
-    gtc_patients = ['C189', 'C290', 'C333', 'C380', 'C387']
+    gtc_patients = ['C309', 'C290', 'C333', 'C380', 'C387']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
@@ -157,10 +161,12 @@ if __name__ == '__main__':
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
+    testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        best_auc = optimise(nb_classes, train)
-        test_cache = Cache(CFG.testcachedir + str(i), CFG.cacheclear)
+        best_auc = optimise(nb_classes, train, i)
         net = create_network(num_channels(CFG.modalities), nb_classes)
-        load_wgts(net)
-        metrics = evaluate(net, test, CFG.datadir, test_cache)
-        break
+        metrics, _ = train_network(net, train, test, 0, i)
+        testp_metrics.append(metrics2print(metrics))
+
+    print('LOO test results:')
+    print_all_folds(testp_metrics, len(folds))
