@@ -20,7 +20,7 @@ from mmsdcnn.constants import CFG, DEVICE
 from mmsdcommon.metrics import roc_auc_score
 from mmsdcommon.preprocess import normalise_acc, normalise_eda, normalise_bvp, \
     normalise_hr
-
+from collections import namedtuple
 
 def probabilities(pred):
     return torch.softmax(pred, 1)
@@ -67,10 +67,6 @@ def Convert2numpy(sample):
     return sample[0], sample[1], X
 
 
-@nut_function
-def Normalise(sample):
-    hr = normalise_hr(sample.hr)
-    bvp = normalise_bvp(sample.bvp)
-    eda = normalise_eda(sample.eda)
-    acc = normalise_acc(sample.acc)
-    return sample._replace(hr=hr, eda=eda, bvp=bvp, acc=acc)
+
+
+

@@ -24,11 +24,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import leave1out
-from mmsdcommon.preprocess import FilterNonMotor, sample_imbalance
+from mmsdcommon.preprocess import FilterNonMotor, sample_imbalance, NormaliseRaw
 from mmsdcommon.util import num_channels, PrintAll
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import CFG
-from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy, Normalise
+from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy
 from mmsdcnn.evaluate import evaluate
 from mmsdcnn.util import print_metrics, print_all_folds
 from mmsdcnn.network import save_wgts, load_wgts, save_ckp, load_ckp
@@ -116,7 +116,7 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
         loss = (gen_session(trainset, CFG.datadir, relabelling=CFG.szr_types)
                 >> PrintProgress(n_sessions)
-                >> Normalise()
+                >> NormaliseRaw()
                 >> GenWindow(CFG.win_len, CFG.win_step)
                 # >> FilterNonMotor(CFG.motor_threshold)
                 >> BalanceSession('under')

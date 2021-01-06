@@ -18,9 +18,9 @@ import torch
 from nutsflow import *
 from nutsml import PrintType, PrintColType
 from mmsdcommon.data import gen_session, GenWindow
-from mmsdcommon.preprocess import FilterNonMotor
+from mmsdcommon.preprocess import FilterNonMotor, NormaliseRaw
 from mmsdcnn.constants import CFG
-from mmsdcnn.common import MakeBatch, PredBatch, Convert2numpy, Normalise
+from mmsdcnn.common import MakeBatch, PredBatch, Convert2numpy
 from mmsdcommon.metrics import szr_metrics
 
 
@@ -30,7 +30,7 @@ def evaluate(net, testset, fdir, test_cache):
     with torch.no_grad():
         tars, preds, probs = (gen_session(testset, fdir,
                                           relabelling=CFG.szr_types)
-                              >> Normalise()
+                              >> NormaliseRaw()
                               >> GenWindow(CFG.win_len, win_step)
                               # >> FilterNonMotor(CFG.motor_threshold)
                               >> Convert2numpy() >> test_cache
