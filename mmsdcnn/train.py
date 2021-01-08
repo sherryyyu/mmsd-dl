@@ -24,13 +24,15 @@ from torch.utils.tensorboard import SummaryWriter
 
 from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import leave1out
-from mmsdcommon.preprocess import FilterNonMotor, sample_imbalance, NormaliseRaw
-from mmsdcommon.util import num_channels, PrintAll
+from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance,
+                                   NormaliseRaw, FilterSzrFree)
+from mmsdcommon.util import num_channels, metrics2print, print_all_folds
+
 from mmsdcnn.network import create_network
 from mmsdcnn.constants import CFG
 from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy
 from mmsdcnn.evaluate import evaluate
-from mmsdcnn.util import print_metrics, print_all_folds
+from mmsdcnn.util import print_metrics
 from mmsdcnn.network import save_wgts, load_wgts, save_ckp, load_ckp
 
 
@@ -43,21 +45,6 @@ def BalanceSession(sample, sampling):
                                        np.array(data))
         for l, d in zip(label, data):
             yield meta[0], l, d
-
-
-def has_szr(dataset, data_dir):
-    '''Check if the dataset contains seizures, can be slow if dataset is big.'''
-    y = (gen_session(dataset, data_dir)
-         >> GenWindow(CFG.win_len, CFG.win_len, 0)
-         >> FilterNonMotor(CFG.motor_threshold)
-         >> Get(1) >> Collect())
-    all_zeros = not np.array(y).any()
-    return not all_zeros
-
-
-def metrics2print(metrics):
-    return (metrics['sen_cnt'], metrics['far_cnt'],
-            metrics['thresholds'], metrics['auc'])
 
 
 def optimise(nb_classes, trainset, n_fold):
@@ -120,9 +107,9 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
         loss = (gen_session(trainset, CFG.datadir, relabelling=CFG.szr_types)
                 >> PrintProgress(n_sessions)
+                >> FilterSzrFree()
                 >> NormaliseRaw()
                 >> GenWindow(CFG.win_len, CFG.win_step)
-                # >> FilterNonMotor(CFG.motor_threshold)
                 >> BalanceSession('under')
                 >> train_cache
                 >> Shuffle(50)
@@ -153,11 +140,13 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 if __name__ == '__main__':
     # gtc_patients = ['C242', 'C245', 'C290', 'C333', 'C380', 'C387']
     gtc_patients = ['C309', 'C290', 'C333', 'C380', 'C387']
+    FBTC = ['C189', 'C192', 'C225', 'C226', 'C232', 'C234', 'C241', 'C242',
+           'C245', 'C296', 'C417', 'C421']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=True,
-                                patient_subset=gtc_patients)
+                                patient_subset=FBTC)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
@@ -167,6 +156,7 @@ if __name__ == '__main__':
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics, _ = train_network(net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))
+        break
 
     print('LOO test results:')
     print_all_folds(testp_metrics, len(folds))
