@@ -146,7 +146,7 @@ if __name__ == '__main__':
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=True,
-                                patient_subset=FBTC)
+                                patient_subset=gtc_patients)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
@@ -156,7 +156,6 @@ if __name__ == '__main__':
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics, _ = train_network(net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))
-        break
 
     print('LOO test results:')
     print_all_folds(testp_metrics, len(folds))
