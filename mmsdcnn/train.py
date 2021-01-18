@@ -138,15 +138,15 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
 
 if __name__ == '__main__':
-    # gtc_patients = ['C242', 'C245', 'C290', 'C333', 'C380', 'C387']
     gtc_patients = ['C309', 'C290', 'C333', 'C380', 'C387']
     FBTC = ['C189', 'C192', 'C225', 'C226', 'C232', 'C234', 'C241', 'C242',
            'C245', 'C296', 'C417', 'C421']
+    focal_myoc_p = ['C189', 'C192', 'C296']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
-                                szr_sess_only=True,
-                                patient_subset=gtc_patients)
+                                szr_sess_only=False,
+                                patient_subset=focal_myoc_p)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
@@ -156,6 +156,7 @@ if __name__ == '__main__':
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics, _ = train_network(net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))
+        break
 
     print('LOO test results:')
     print_all_folds(testp_metrics, len(folds))

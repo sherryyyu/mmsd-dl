@@ -22,6 +22,7 @@ ROOT = '/Users/shuangyu/datasets/bch/'
 DATADIR = 'wristband_redcap_data'
 gtc = ['Tonic-clonic']
 fbtc = ['FBTC']
+focal_myoclonic = ['focal,Myoclonic']
 # ROOT = '/Users/shuangyu/datasets/'
 # DATADIR = 'wristband_data'
 
@@ -43,7 +44,7 @@ CFG = Config(
     plotdir=ROOT + 'plots',
     ckpdir='checkpoints',
     modalities=['EDA', 'ACC'],
-    szr_types = gtc,
+    szr_types = focal_myoclonic,
     preictal_len=60,
     postictal_len=60,
     motor_threshold=0.1,
