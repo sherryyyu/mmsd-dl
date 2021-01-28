@@ -34,8 +34,11 @@ def to_numpy(x):
 def MakeBatch(samples, batchsize):
     for batch in samples >> Chunk(batchsize):
         meta, targets, data = batch >> Unzip()
-        data_batch = torch.tensor(data).permute(0, 2, 1).to(
-            DEVICE)  # change channel location for pytorch compatibility
+        # data_batch = torch.tensor(data).permute(0, 2, 1).to(DEVICE)
+        data_batch = torch.tensor(data).to(DEVICE)
+        if not CFG.sequence_model:
+            # change channel location for pytorch compatibility
+            data_batch = data_batch.permute(0, 2, 1)
         tar_batch = torch.tensor(targets).to(DEVICE)
         yield tar_batch, data_batch
 
