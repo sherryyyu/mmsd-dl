@@ -48,5 +48,5 @@ CFG = Config(
     preictal_len=60,
     postictal_len=60,
     motor_threshold=0.1,
-    sequence_model=True,
+    sequence_model=False,
     cacheclear=True)
