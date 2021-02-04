@@ -15,7 +15,7 @@ Function:
 
 import torch
 import torch.nn as nn
-from mmsdcnn.constants import DEVICE, CFG
+from mmsddl.constants import DEVICE, CFG
 from pytorch_model_summary import summary
 from time import sleep
 import os

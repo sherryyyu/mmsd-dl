@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
-import mmsdcnn
+import mmsddl
 
 setup(
-    name='mmsdcnn',
-    version=mmsdcnn.__version__,
+    name='mmsddl',
+    version=mmsddl.__version__,
     url='https://github.ibm.com/aur-bic/mmsd-cnn',
     author='Shuang Yu, Fatemeh Jalali, Jianbin Tang',
     author_email='shuang.yu@ibm.com',

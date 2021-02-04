@@ -28,12 +28,12 @@ from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance,
                                    NormaliseRaw, FilterSzrFree)
 from mmsdcommon.util import num_channels, metrics2print, print_all_folds
 
-from mmsdcnn.network import create_network
-from mmsdcnn.constants import CFG
-from mmsdcnn.common import MakeBatch, TrainBatch, Convert2numpy
-from mmsdcnn.evaluate import evaluate
-from mmsdcnn.util import print_metrics
-from mmsdcnn.network import save_wgts, load_wgts, save_ckp, load_ckp
+from mmsddl.network import create_network
+from mmsddl.constants import CFG
+from mmsddl.common import MakeBatch, TrainBatch, Convert2numpy
+from mmsddl.evaluate import evaluate
+from mmsddl.util import print_metrics
+from mmsddl.network import save_wgts, load_wgts, save_ckp, load_ckp
 
 
 @nut_processor
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
     testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        best_auc = optimise(nb_classes, train, i)
+        # best_auc = optimise(nb_classes, train, i)
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics, _ = train_network(net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))

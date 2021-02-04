@@ -19,8 +19,8 @@ from nutsflow import *
 from nutsml import PrintType, PrintColType
 from mmsdcommon.data import gen_session, GenWindow
 from mmsdcommon.preprocess import FilterNonMotor, NormaliseRaw
-from mmsdcnn.constants import CFG
-from mmsdcnn.common import MakeBatch, PredBatch, Convert2numpy
+from mmsddl.constants import CFG
+from mmsddl.common import MakeBatch, PredBatch, Convert2numpy
 from mmsdcommon.metrics import szr_metrics
 
 
