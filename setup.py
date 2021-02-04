@@ -5,11 +5,11 @@ import mmsddl
 setup(
     name='mmsddl',
     version=mmsddl.__version__,
-    url='https://github.ibm.com/aur-bic/mmsd-cnn',
+    url='https://github.com/sherryyyu/mmsd-dl',
     author='Shuang Yu, Fatemeh Jalali, Jianbin Tang',
-    author_email='shuang.yu@ibm.com',
+    author_email='sherry.shuang.yu@gmail.com',
     description='Exploring CNN networks for multi-modal seizure detection',
     packages=find_packages(),
-    install_requires=[],  # e.g. ['numpy >= 1.11.1', 'matplotlib >= 1.5.1']
+    install_requires=['numpy >= 1.19.4', 'torch >= 1.7.0', 'nutsflow == 1.1.0', 'nutsml == 1.1.0'],
 )
 
