@@ -137,22 +137,24 @@ if __name__ == '__main__':
             'C245', 'C296', 'C299', 'C303', 'C356', 'C388', 'C392', 'C399',
             'C417', 'C421', 'C423', 'C429', 'C433']
     focal_myoc_p = ['C192', 'C296']
-    automatisms_p = ['c195', 'c427', 'c284', 'c316', 'c396', 'c221', 'c399',
-                   'c418', 'c190', 'c235', 'c391', 'c389']
+    automatisms_p = ['C195', 'C427', 'C284', 'C316', 'C396', 'C221', 'C399',
+                   'C418', 'C190', 'C235', 'C391', 'C389']
+    epileptic_spasms = ['C147', 'C285', 'C428', 'C196', 'C406']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=False,
-                                patient_subset=automatisms_p)
+                                patient_subset=epileptic_spasms)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
     testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        # best_auc = optimise(nb_classes, train, i)
+        best_auc = optimise(nb_classes, train, i)
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics, _ = train_network(net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))
+        break
 
     print('LOO test results:')
     print_all_folds(testp_metrics, len(folds))
