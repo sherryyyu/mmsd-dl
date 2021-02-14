@@ -137,11 +137,13 @@ if __name__ == '__main__':
             'C245', 'C296', 'C299', 'C303', 'C356', 'C388', 'C392', 'C399',
             'C417', 'C421', 'C423', 'C429', 'C433']
     focal_myoc_p = ['C192', 'C296']
+    automatisms_p = ['c195', 'c427', 'c284', 'c316', 'c396', 'c221', 'c399',
+                   'c418', 'c190', 'c235', 'c391', 'c389']
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=False,
-                                patient_subset=gtc_patients)
+                                patient_subset=automatisms_p)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
