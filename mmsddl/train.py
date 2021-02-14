@@ -132,7 +132,7 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
 
 if __name__ == '__main__':
-    gtc_patients = ['C309', 'C290', 'C333', 'C372', 'C380', 'C387']
+    gtc_patients = ['C290', 'C333', 'C372', 'C380', 'C387']
     FBTC = ['C189', 'C192', 'C225', 'C226', 'C232', 'C234', 'C241', 'C242',
             'C245', 'C296', 'C299', 'C303', 'C356', 'C388', 'C392', 'C399',
             'C417', 'C421', 'C423', 'C429', 'C433']
@@ -143,11 +143,15 @@ if __name__ == '__main__':
     gnr_tonic = [p.upper() for p in ['c212', 'c404', 'c243', 'c147', 'c330',
                                      'c313', 'c340', 'c353', 'c370', 'c236',
                                      'c326', 'c196', 'c364', 'c372']]
+    behaviour_arrest = [p.upper() for p in ['c328', 'c282', 'c365', 'c390',
+                                            'c403', 'c190', 'c422', 'c394',
+                                            'c303', 'c329', 'c389']]
+
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=False,
-                                patient_subset=gnr_tonic)
+                                patient_subset=behaviour_arrest)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
