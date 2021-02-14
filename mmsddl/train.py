@@ -140,11 +140,14 @@ if __name__ == '__main__':
     automatisms_p = ['C195', 'C427', 'C284', 'C316', 'C396', 'C221', 'C399',
                    'C418', 'C190', 'C235', 'C391', 'C389']
     epileptic_spasms = ['C147', 'C285', 'C428', 'C196', 'C406']
+    gnr_tonic = [p.upper() for p in ['c212', 'c404', 'c243', 'c147', 'c330',
+                                     'c313', 'c340', 'c353', 'c370', 'c236',
+                                     'c326', 'c196', 'c364', 'c372']]
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=False,
-                                patient_subset=epileptic_spasms)
+                                patient_subset=gnr_tonic)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 

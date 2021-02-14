@@ -20,6 +20,7 @@ fbtc = ['FBTC']
 focal_myoclonic = ['focal,Myoclonic']
 automatisms = ['Automatisms']
 epileptic_spasms = ['Epileptic spasms']
+gnr_tonic = ['gnr,Tonic']
 # ROOT = '/Users/shuangyu/datasets/'
 # DATADIR = 'wristband_data'
 
@@ -27,7 +28,7 @@ epileptic_spasms = ['Epileptic spasms']
 # ROOT = '/fast1/'  # On ER01
 
 CFG = Config(
-    n_epochs=15,
+    n_epochs=50,
     lr=1e-3,
     batch_size=32,
     verbose=1,
