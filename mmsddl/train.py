@@ -151,7 +151,7 @@ if __name__ == '__main__':
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=False,
-                                patient_subset=behaviour_arrest)
+                                patient_subset=gtc_patients)
     folds = leave1out(metadata_df, 'patient')
     nb_classes = 2
 
