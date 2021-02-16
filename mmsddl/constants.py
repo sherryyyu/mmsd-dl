@@ -13,8 +13,8 @@ from pathlib import Path
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ROOT = '/Users/shuangyu/datasets/bch/'
-# DATADIR = 'wristband_REDCap_202102'
-DATADIR = 'wristband_redcap_data'
+DATADIR = 'wristband_REDCap_202102'
+# DATADIR = 'wristband_redcap_data'
 
 gtc = ['Tonic-clonic']
 fbtc = ['FBTC']

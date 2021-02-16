@@ -34,7 +34,7 @@ from mmsddl.network import save_wgts, load_wgts, save_ckp, load_ckp
 def BalanceSession(sample, sampling):
     same_sess = lambda x: (x.metadata['pid'], x.metadata['sid'])
     for session in sample >> ChunkBy(same_sess, list):
-        meta, label, data = session >> Convert2numpy() >> Unzip()
+        meta, id, label, data = session >> Convert2numpy() >> Unzip()
         label, data = sample_imbalance(sampling, np.array(label),
                                        np.array(data))
         for l, d in zip(label, data):

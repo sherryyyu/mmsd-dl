@@ -25,26 +25,32 @@ def to_numpy(x):
 
 
 @nut_processor
-def MakeBatch(samples, batchsize):
+def MakeBatch(samples, batchsize, test = False):
     for batch in samples >> Chunk(batchsize):
-        meta, targets, data = batch >> Unzip()
+        if test:
+            meta, szrids, targets, data = batch >> Unzip()
+        else:
+            meta, targets, data = batch >> Unzip()
         # data_batch = torch.tensor(data).permute(0, 2, 1).to(DEVICE)
         data_batch = torch.tensor(data).to(DEVICE)
         if not CFG.sequence_model:
             # change channel location for pytorch compatibility
             data_batch = data_batch.permute(0, 2, 1)
         tar_batch = torch.tensor(targets).to(DEVICE)
-        yield tar_batch, data_batch
+        if test:
+            yield szrids, tar_batch, data_batch
+        else:
+            yield tar_batch, data_batch
 
 
 @nut_function
 def PredBatch(batch, net):
-    targets, data = batch
+    szrids, targets, data = batch
     preds = net(data)
     probs = probabilities(preds)
     preds = torch.max(probs, 1)[1].view_as(targets)
 
-    return to_numpy(targets), to_numpy(preds), to_numpy(probs)
+    return szrids, to_numpy(targets), to_numpy(preds), to_numpy(probs)
 
 
 @nut_function
@@ -60,8 +66,8 @@ def TrainBatch(batch, net, optimizer, criterion):
 
 @nut_function
 def Convert2numpy(sample):
-    X = np.concatenate(sample[2:], axis=1)
-    return sample[0], sample[1], X
+    X = np.concatenate(sample[3:], axis=1)
+    return sample[0], sample[1], sample[2], X
 
 
 
