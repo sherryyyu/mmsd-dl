@@ -10,10 +10,21 @@ Function:
 import torch
 from nutsflow.config import Config
 from pathlib import Path
+import os
+import platform
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-ROOT = '/Users/shuangyu/datasets/bch/'
-DATADIR = 'wristband_REDCap_202102'
+
+if platform.system() == 'Linux':
+    ROOT = '/slow1/out_datasets/bch/'
+elif platform.system() == 'Darwin':
+    # ROOT = '/Users/shuangyu/datasets/bch/'
+    ROOT = os.path.join(Path.home(), 'datasets','bch')
+else:
+    print('Unknown OS platform %s' % platform.system())
+    exit()
+
+DATADIR = 'wristband_REDCap_202102_szr_cluster_win0'
 # DATADIR = 'wristband_redcap_data'
 
 gtc = ['Tonic-clonic']
@@ -37,7 +48,7 @@ CFG = Config(
     win_len=10,
     win_step=2,
     rootdir=ROOT,
-    datadir=ROOT + DATADIR,
+    datadir=os.path.join(ROOT, DATADIR),
     traincachedir=ROOT + 'cache/train/fold',
     valcachedir=ROOT + 'cache/val/fold',
     testcachedir=ROOT + 'cache/test/fold',
