@@ -7,9 +7,13 @@ Function:
    Define some functions for neural network training
 '''
 
-import time
-import os
 
+import os
+import sys
+print('Current working path is %s' % str(os.getcwd()))
+sys.path.insert(0,os.getcwd())
+
+import time
 import numpy as np
 import torch
 from nutsflow import *
