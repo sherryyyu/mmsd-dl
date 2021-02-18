@@ -16,7 +16,8 @@ import platform
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 if platform.system() == 'Linux':
-    ROOT = '/slow1/out_datasets/bch/'
+    #ROOT = '/slow1/out_datasets/bch/'
+    ROOT = '/fast2'
 elif platform.system() == 'Darwin':
     # ROOT = '/Users/shuangyu/datasets/bch/'
     ROOT = os.path.join(Path.home(), 'datasets','bch')
