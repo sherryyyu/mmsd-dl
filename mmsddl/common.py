@@ -31,7 +31,6 @@ def MakeBatch(samples, batchsize, test = False):
             meta, szrids, targets, data = batch >> Unzip()
         else:
             meta, targets, data = batch >> Unzip()
-        # data_batch = torch.tensor(data).permute(0, 2, 1).to(DEVICE)
         data_batch = torch.tensor(data).to(DEVICE)
         if not CFG.sequence_model:
             # change channel location for pytorch compatibility

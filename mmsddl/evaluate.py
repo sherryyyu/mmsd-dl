@@ -35,7 +35,8 @@ def evaluate(net, testset, fdir, test_cache):
         probs = (probs >> Flatten() >> Get(1)
                  >> Clone(CFG.win_len) >> Collect())
 
-    return szr_metrics(szrids, tars, probs, CFG.preictal_len, CFG.postictal_len)
+    return szr_metrics(szrids, tars, probs, CFG.preictal_len, CFG.postictal_len,
+                       single_wrst=False)
 
 if __name__ == '__main__':
     import os
@@ -55,5 +56,3 @@ if __name__ == '__main__':
     val_cache = create_cache(CFG, 'tt', False)
     metrics = evaluate(net, p_set, fdir, val_cache)
     print(metrics['auc'])
-    # szr_starts, szr_ends = find_szrs(y_true, 0, 0)
-    # print(szr_starts, szr_ends)
