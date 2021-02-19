@@ -21,7 +21,7 @@ from nutsml import PrintType, PlotLines
 from torch.utils.tensorboard import SummaryWriter
 
 from mmsdcommon.data import load_metadata, gen_session, GenWindow
-from mmsdcommon.cross_validate import leave1out
+from mmsdcommon.cross_validate import *
 from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance,
                                    NormaliseRaw, FilterSzrFree)
 from mmsdcommon.util import num_channels, metrics2print, print_all_folds
@@ -46,7 +46,9 @@ def BalanceSession(sample, sampling):
 
 
 def optimise(nb_classes, trainset, n_fold):
-    folds = leave1out(trainset, 'patient')
+    # folds = leave1out(trainset, 'patient')
+    folds = crossfold(trainset, 'patient', 3)
+
     all_metrics, best_auc = [], 0
     for i, (train, val) in enumerate(folds):
         print(f"Fold {i + 1}/{len(folds)}: loading train patients "
@@ -155,8 +157,10 @@ if __name__ == '__main__':
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
                                 szr_sess_only=False,
-                                patient_subset=gtc_patients)
+                                patient_subset=FBTC)
     folds = leave1out(metadata_df, 'patient')
+
+    # cross_folds = crossfold(metadata_df, 'patient',3)
     nb_classes = 2
 
     testp_metrics = []
