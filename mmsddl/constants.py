@@ -26,7 +26,6 @@ else:
     exit()
 
 DATADIR = 'wristband_REDCap_202102_szr_cluster_win0'
-# DATADIR = 'wristband_redcap_data'
 
 gtc = ['Tonic-clonic']
 fbtc = ['FBTC']
@@ -35,30 +34,53 @@ automatisms = ['Automatisms']
 epileptic_spasms = ['Epileptic spasms']
 gnr_tonic = ['gnr,Tonic']
 behaviour_arrast = ['Behavior arrest']
-# ROOT = '/Users/shuangyu/datasets/'
-# DATADIR = 'wristband_data'
+szr_all = ['szr']
 
+simulation_choice = 'all'#
+# 'gtc', 'fbtc','focal_myo','automatisms','epileptic_spasms','gnr_tonic','behaviour_arrast','all'
 
-# ROOT = '/fast1/'  # On ER01
-
-CFG = Config(
-    n_epochs=15,
-    lr=1e-3,
-    batch_size=32,
-    verbose=1,
-    win_len=10,
-    win_step=2,
-    rootdir=ROOT,
-    datadir=os.path.join(ROOT, DATADIR),
-    traincachedir=os.path.join(ROOT, 'cache/train/fold'),
-    valcachedir=os.path.join(ROOT, 'cache/val/fold'),
-    testcachedir=os.path.join(ROOT, 'cache/test/fold'),
-    plotdir=os.path.join(ROOT, 'plots'),
-    ckpdir=os.path.join(ROOT, 'checkpoints'),
-    modalities=['EDA', 'ACC'],
-    szr_types = gtc,
-    preictal_len=60,
-    postictal_len=60,
-    motor_threshold=0.1,
-    sequence_model=False,
-    cacheclear=True)
+if simulation_choice=='all':
+    CFG = Config(
+        n_epochs=16,
+        lr=1e-3,
+        batch_size=32,
+        verbose=1,
+        win_len=10,
+        win_step=2,
+        rootdir=ROOT,
+        datadir=os.path.join(ROOT, DATADIR),
+        modalities=['EDA', 'ACC'],
+        szr_types=szr_all,
+        preictal_len=60,
+        postictal_len=60,
+        motor_threshold=0.1,
+        sequence_model=False,
+        cacheclear=True,
+        traincachedir=os.path.join(ROOT, simulation_choice, 'cache/train/fold'),
+        valcachedir=os.path.join(ROOT, simulation_choice, 'cache/val/fold'),
+        testcachedir=os.path.join(ROOT, simulation_choice, 'cache/test/fold'),
+        plotdir=os.path.join(ROOT, simulation_choice, 'plots'),
+        ckpdir=os.path.join(ROOT, simulation_choice, 'checkpoints')
+    )
+else:
+    CFG = Config(
+        n_epochs=15,
+        lr=1e-3,
+        batch_size=32,
+        verbose=1,
+        win_len=10,
+        win_step=2,
+        rootdir=ROOT,
+        datadir=os.path.join(ROOT, DATADIR),
+        traincachedir=os.path.join(ROOT, 'cache/train/fold'),
+        valcachedir=os.path.join(ROOT, 'cache/val/fold'),
+        testcachedir=os.path.join(ROOT, 'cache/test/fold'),
+        plotdir=os.path.join(ROOT, 'plots'),
+        ckpdir=os.path.join(ROOT, 'checkpoints'),
+        modalities=['EDA', 'ACC'],
+        szr_types = gtc,
+        preictal_len=60,
+        postictal_len=60,
+        motor_threshold=0.1,
+        sequence_model=False,
+        cacheclear=True)

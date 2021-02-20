@@ -156,8 +156,7 @@ if __name__ == '__main__':
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
     metadata_df = load_metadata(metapath, n=None,
                                 modalities=CFG.modalities,
-                                szr_sess_only=False,
-                                patient_subset=FBTC)
+                                szr_sess_only=True)
     folds = leave1out(metadata_df, 'patient')
 
     # cross_folds = crossfold(metadata_df, 'patient',3)
@@ -165,7 +164,7 @@ if __name__ == '__main__':
 
     testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        best_auc = optimise(nb_classes, train, i)
+        # best_auc = optimise(nb_classes, train, i)
         net = create_network(num_channels(CFG.modalities), nb_classes)
         metrics, _ = train_network(net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))
