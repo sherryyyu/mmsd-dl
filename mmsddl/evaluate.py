@@ -13,12 +13,13 @@ from nutsflow import *
 from nutsml import PrintType, PrintColType
 from mmsdcommon.data import gen_session, GenWindow
 from mmsdcommon.preprocess import FilterNonMotor, NormaliseRaw
-from mmsddl.constants import CFG
 from mmsddl.common import MakeBatch, PredBatch, Convert2numpy
 from mmsdcommon.metrics import szr_metrics
 
+from mmsddl.get_cfg import get_CFG
 
-def evaluate(net, testset, fdir, test_cache):
+
+def evaluate(CFG, net, testset, fdir, test_cache):
     net.eval()
     win_step = 10
     with torch.no_grad():
@@ -27,7 +28,7 @@ def evaluate(net, testset, fdir, test_cache):
                               >> NormaliseRaw()
                               >> GenWindow(CFG.win_len, win_step)
                               >> Convert2numpy() >> test_cache
-                              >> MakeBatch(CFG.batch_size, test=True)
+                              >> MakeBatch(CFG, CFG.batch_size, test=True)
                               >> PredBatch(net) >> Unzip())
 
         tars = tars >> Flatten() >> Clone(CFG.win_len) >> Collect()
@@ -45,14 +46,27 @@ if __name__ == '__main__':
     from mmsddl.train import create_network, num_channels, create_cache
     from mmsddl.network import load_wgts
 
+
+
+    CFG = get_CFG()
+
+
     # fdir = os.path.join('/Users/shuangyu/datasets/bch', 'wristband_redcap_data')
     # relabelling = ['Tonic-clonic']
-    fdir = os.path.join('/Users/shuangyu/datasets/bch/wristband_REDCap_202102')
+    # fdir = os.path.join('/Users/shuangyu/datasets/bch/wristband_REDCap_202102')
+    metapath = CFG.datadir
+
     relabelling = 'same'
-    p_set = load_metadata(os.path.join(fdir, 'metadata.csv'),
-                          patient_subset=['C190'], modalities=['ACC', 'EDA'])
-    net = create_network(num_channels(CFG.modalities), 2)
+
+    if len(CFG.patients)==0:
+        p_set = load_metadata(os.path.join(metapath, 'metadata.csv'),
+                           modalities=CFG.modalities)
+    else:
+        p_set = load_metadata(os.path.join(metapath, 'metadata.csv'),
+                              patient_subset=CFG.patients, modalities=CFG.modalities)
+
+    net = create_network(CFG, num_channels(CFG.modalities), 2)
     load_wgts(net)
     val_cache = create_cache(CFG, 'tt', False)
-    metrics = evaluate(net, p_set, fdir, val_cache)
+    metrics = evaluate(CFG, net, p_set, metapath, val_cache)
     print(metrics['auc'])

@@ -9,7 +9,7 @@ Function:
 
 import torch
 import torch.nn as nn
-from mmsddl.constants import DEVICE, CFG
+from mmsddl.get_cfg import DEVICE
 from pytorch_model_summary import summary
 from time import sleep
 import os
@@ -71,7 +71,7 @@ class LSTMClassifier(nn.Module):
         return h0, c0
 
 
-def print_summary(net, input_dim):
+def print_summary(CFG, net, input_dim):
     if CFG.sequence_model:
         # RNN: batch, seq_len, input_dim
         t = torch.zeros((1, 640, input_dim)).to(DEVICE)
@@ -82,7 +82,7 @@ def print_summary(net, input_dim):
     print(summary(net, t, show_input=False))
 
 
-def create_network(input_dim, num_classes):
+def create_network(CFG, input_dim, num_classes):
     if CFG.sequence_model:
         model = LSTMClassifier(input_dim, 200, 1, num_classes)
     else:

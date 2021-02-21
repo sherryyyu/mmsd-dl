@@ -20,14 +20,14 @@ from nutsflow import *
 from nutsml import PrintType, PlotLines
 from torch.utils.tensorboard import SummaryWriter
 
-from mmsdcommon.data import load_metadata, gen_session, GenWindow
-from mmsdcommon.cross_validate import leave1out
+from mmsdcommon.data import load_metadata, gen_session, GenWindow, find_patients
+from mmsdcommon.cross_validate import *
 from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance,
                                    NormaliseRaw, FilterSzrFree)
 from mmsdcommon.util import num_channels, metrics2print, print_all_folds
 
 from mmsddl.network import create_network
-from mmsddl.constants import CFG
+from mmsddl.get_cfg import get_CFG
 from mmsddl.common import MakeBatch, TrainBatch, Convert2numpy
 from mmsddl.evaluate import evaluate
 from mmsddl.util import print_metrics
@@ -45,8 +45,10 @@ def BalanceSession(sample, sampling):
             yield meta[0], l, d
 
 
-def optimise(nb_classes, trainset, n_fold):
-    folds = leave1out(trainset, 'patient')
+def optimise(CFG, nb_classes, trainset, n_fold):
+    # folds = leave1out(trainset, 'patient')
+    folds = crossfold(trainset, 'patient', 3)
+
     all_metrics, best_auc = [], 0
     for i, (train, val) in enumerate(folds):
         print(f"Fold {i + 1}/{len(folds)}: loading train patients "
@@ -63,8 +65,8 @@ def optimise(nb_classes, trainset, n_fold):
     return best_auc
 
 
-def create_cache(cfg, fold_no, is_train):
-    cachedir = cfg.traincachedir if is_train else cfg.valcachedir
+def create_cache(CFG, fold_no, is_train):
+    cachedir = CFG.traincachedir if is_train else CFG.valcachedir
     return Cache(cachedir + str(fold_no), CFG.cacheclear)
 
 
@@ -85,7 +87,7 @@ def log2tensorboard(writer, epoch, loss, metrics):
     writer.add_scalar("AUC/val", metrics['auc'], epoch)
 
 
-def train_network(net, trainset, valset, best_auc, fold_no):
+def train_network(CFG, net, trainset, valset, best_auc, fold_no):
     writer = SummaryWriter()
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -111,11 +113,11 @@ def train_network(net, trainset, valset, best_auc, fold_no):
                 >> BalanceSession('under')
                 >> train_cache
                 >> Shuffle(50)
-                >> MakeBatch(CFG.batch_size)
+                >> MakeBatch(CFG, CFG.batch_size)
                 >> TrainBatch(net, optimizer, criterion)
                 >> Mean())
 
-        metrics = evaluate(net, valset, CFG.datadir, val_cache)
+        metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
         log2tensorboard(writer, epoch, loss, metrics)
 
         if CFG.verbose:
@@ -136,34 +138,38 @@ def train_network(net, trainset, valset, best_auc, fold_no):
 
 
 if __name__ == '__main__':
-    gtc_patients = ['C290', 'C333', 'C372', 'C380', 'C387']
-    FBTC = ['C189', 'C192', 'C225', 'C226', 'C232', 'C234', 'C241', 'C242',
-            'C245', 'C296', 'C299', 'C303', 'C356', 'C388', 'C392', 'C399',
-            'C417', 'C421', 'C423', 'C429', 'C433']
-    focal_myoc_p = ['C192', 'C296']
-    automatisms_p = ['C195', 'C427', 'C284', 'C316', 'C396', 'C221', 'C399',
-                   'C418', 'C190', 'C235', 'C391', 'C389']
-    epileptic_spasms = ['C147', 'C285', 'C428', 'C196', 'C406']
-    gnr_tonic = [p.upper() for p in ['c212', 'c404', 'c243', 'c147', 'c330',
-                                     'c313', 'c340', 'c353', 'c370', 'c236',
-                                     'c326', 'c196', 'c364', 'c372']]
-    behaviour_arrest = [p.upper() for p in ['c328', 'c282', 'c365', 'c390',
-                                            'c403', 'c190', 'c422', 'c394',
-                                            'c303', 'c329', 'c389']]
+
+
+    CFG = get_CFG()
+
+    # super slow
+    # patients = find_patients(CFG.datadir, CFG.szr_types)
+    # print(CFG.szr_types,'\'s patient group are',patients)
 
     metapath = os.path.join(CFG.datadir, 'metadata.csv')
-    metadata_df = load_metadata(metapath, n=None,
-                                modalities=CFG.modalities,
-                                szr_sess_only=False,
-                                patient_subset=gtc_patients)
+
+    if len(CFG.patients)==0:
+        metadata_df = load_metadata(metapath, n=None,
+                                    modalities=CFG.modalities,
+                                    szr_sess_only=True,
+                                    patient_subset=None)
+    else:
+        metadata_df = load_metadata(metapath, n=None,
+                                    modalities=CFG.modalities,
+                                    szr_sess_only=True,
+                                    patient_subset=CFG.patients)
     folds = leave1out(metadata_df, 'patient')
+
+    # cross_folds = crossfold(metadata_df, 'patient',3)
     nb_classes = 2
 
     testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        best_auc = optimise(nb_classes, train, i)
-        net = create_network(num_channels(CFG.modalities), nb_classes)
-        metrics, _ = train_network(net, train, test, 0, i)
+        # best_auc = optimise(nb_classes, train, i)
+
+        print(test)
+        net = create_network(CFG, num_channels(CFG.modalities), nb_classes)
+        metrics, _ = train_network(CFG, net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))
 
     print('LOO test results:')

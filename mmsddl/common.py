@@ -10,7 +10,7 @@ Function:
 import numpy as np
 import torch
 from nutsflow import *
-from mmsddl.constants import CFG, DEVICE
+from mmsddl.get_cfg import DEVICE
 from mmsdcommon.metrics import roc_auc_score
 from mmsdcommon.preprocess import normalise_acc, normalise_eda, normalise_bvp, \
     normalise_hr
@@ -25,7 +25,7 @@ def to_numpy(x):
 
 
 @nut_processor
-def MakeBatch(samples, batchsize, test = False):
+def MakeBatch(samples, CFG, batchsize, test = False):
     for batch in samples >> Chunk(batchsize):
         if test:
             meta, szrids, targets, data = batch >> Unzip()
