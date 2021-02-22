@@ -20,11 +20,12 @@ from nutsflow import *
 from nutsml import PrintType, PlotLines
 from torch.utils.tensorboard import SummaryWriter
 
-from mmsdcommon.data import load_metadata, gen_session, GenWindow, find_patients
+from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import *
 from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance,
                                    NormaliseRaw, FilterSzrFree)
-from mmsdcommon.util import num_channels, metrics2print, print_all_folds
+from mmsdcommon.util import (num_channels, metrics2print, print_all_folds,
+                                save_all_folds)
 
 from mmsddl.network import create_network
 from mmsddl.get_cfg import get_CFG
@@ -135,26 +136,15 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
             print_metrics(metrics)
     writer.close()
 
-    if start_epoch>=CFG.n_epochs:
-        metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
-        if CFG.verbose:
-            msg = "Epoch {:d}..{:d} val-auc {:.4f}"
-            print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
+    # if start_epoch>=CFG.n_epochs:
+    #     metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
+    #     if CFG.verbose:
+    #         msg = "Epoch {:d}..{:d} val-auc {:.4f}"
+    #         print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
 
 
     return metrics, best_auc
 
-
-def save_all_folds(fdir, metrics, cfg):
-    idenfifiers = cfg.szr_types + cfg.modalities
-    single = lambda x: 'single_wrst' if x else 'both_wrist'
-    title = '_'.join(idenfifiers)+'_'+single(cfg.sing_wrst)+'.txt'
-    f_path = os.path.join(fdir, title)
-    with open(f_path, 'w') as f:
-        f.write(metrics['roc_curve'])
-        f.write('\n')
-        f.write('Average AUC:'+ str(metrics['average_auc']))
-        f.write('Average delay'+str(metrics['average_delay']))
 
 if __name__ == '__main__':
     cfg = get_CFG()
@@ -182,5 +172,6 @@ if __name__ == '__main__':
         testp_metrics.append(metrics2print(metrics))
 
     print('LOO test results:')
-    results = print_all_folds(testp_metrics, len(folds))
-    save_all_folds('.', results, cfg)
+    results_dir = './data'
+    results = print_all_folds(testp_metrics, len(folds), cfg, results_dir)
+    save_all_folds(results_dir, results, cfg)
