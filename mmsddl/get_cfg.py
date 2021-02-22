@@ -67,7 +67,7 @@ def get_CFG():
     parser.add_argument('--motor_threshold', default=0.1, type=float,
                         help='motor_threshold')
 
-    parser.add_argument('--sing_wrst', default=0, type=int,
+    parser.add_argument('--sing_wrst', default=1, type=int,
                         help='0: two wrst when possible, 1: single wrst only')
 
     args = parser.parse_args()
