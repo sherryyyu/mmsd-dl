@@ -135,11 +135,11 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
             print_metrics(metrics)
     writer.close()
 
-    # if start_epoch>=CFG.n_epochs:
-    #     metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
-    #     if CFG.verbose:
-    #         msg = "Epoch {:d}..{:d} val-auc {:.4f}"
-    #         print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
+    if start_epoch>=CFG.n_epochs:
+        metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
+        if CFG.verbose:
+            msg = "Epoch {:d}..{:d} val-auc {:.4f}"
+            print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
 
 
     return metrics, best_auc
