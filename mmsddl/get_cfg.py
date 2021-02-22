@@ -152,6 +152,7 @@ def get_CFG():
         testcachedir=os.path.join(args.ROOT, middle_path, 'cache/test/fold'),
         plotdir=os.path.join(args.ROOT, middle_path, 'plots'),
         ckpdir=os.path.join(args.ROOT, middle_path, 'checkpoints'),
+        metric_results_dir = os.path.join(args.ROOT,'redcap_results/'),
         modalities=args.modalities,
         szr_types=args.szr_types,
         preictal_len=args.preictal_len,
@@ -159,6 +160,7 @@ def get_CFG():
         motor_threshold=args.motor_threshold,
         sequence_model=False,
         cacheclear=True,
-        sing_wrst=sing_wrst)
+        sing_wrst=sing_wrst,
+        )
 
     return CFG

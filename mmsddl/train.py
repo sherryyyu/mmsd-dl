@@ -153,8 +153,8 @@ def save_all_folds(fdir, metrics, cfg):
     with open(f_path, 'w') as f:
         f.write(metrics['roc_curve'])
         f.write('\n')
-        f.write('Average AUC:'+ str(metrics['average_auc']))
-        f.write('Average delay'+str(metrics['average_delay']))
+        f.write('Average AUC: %5.3f, '%(metrics['average_auc']))
+        f.write('Average delay:%4.2f'%(metrics['average_delay']))
 
 if __name__ == '__main__':
     cfg = get_CFG()
@@ -183,4 +183,4 @@ if __name__ == '__main__':
 
     print('LOO test results:')
     results = print_all_folds(testp_metrics, len(folds))
-    save_all_folds('.', results, cfg)
+    save_all_folds(cfg.metric_results_dir, results, cfg)
