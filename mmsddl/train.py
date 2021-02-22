@@ -182,5 +182,5 @@ if __name__ == '__main__':
         testp_metrics.append(metrics2print(metrics))
 
     print('LOO test results:')
-    results = print_all_folds(testp_metrics, len(folds))
+    results = print_all_folds(testp_metrics, len(folds), cfg, cfg.metric_results_dir)
     save_all_folds(cfg.metric_results_dir, results, cfg)
