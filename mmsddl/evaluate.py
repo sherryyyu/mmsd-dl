@@ -7,6 +7,12 @@ Function:
    Define some  functions for evaluating the neural network model
 '''
 
+
+import os
+import sys
+print('Current working path is %s' % str(os.getcwd()))
+sys.path.insert(0,os.getcwd())
+
 import numpy as np
 import torch
 from nutsflow import *
@@ -37,7 +43,7 @@ def evaluate(CFG, net, testset, fdir, test_cache):
                  >> Clone(CFG.win_len) >> Collect())
 
     return szr_metrics(szrids, tars, probs, CFG.preictal_len, CFG.postictal_len,
-                       single_wrst=False)
+                       single_wrst=CFG.sing_wrst)
 
 if __name__ == '__main__':
     import os

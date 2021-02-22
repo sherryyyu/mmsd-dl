@@ -61,6 +61,9 @@ def get_CFG():
     parser.add_argument('--motor_threshold', default=0.1, type=float,
                         help='motor_threshold')
 
+    parser.add_argument('--sing_wrst', default=0, type=int,
+                        help='0: two wrst when possible, 1: single wrst only')
+
     args = parser.parse_args()
 
     args.modalities = [item for item in args.modalities.split(',')]
@@ -115,6 +118,11 @@ def get_CFG():
 
     args.szr_types = [args.szr_types]
 
+    if args.sing_wrst==0:
+        sing_wrst = False
+    else:
+        sing_wrst = True
+
     CFG = Config(
         patients = patients,
         n_epochs=args.n_epochs,
@@ -136,6 +144,7 @@ def get_CFG():
         postictal_len=args.postictal_len,
         motor_threshold=args.motor_threshold,
         sequence_model=False,
-        cacheclear=True)
+        cacheclear=True,
+        sing_wrst = sing_wrst)
 
     return CFG
