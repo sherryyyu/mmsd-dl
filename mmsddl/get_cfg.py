@@ -79,7 +79,8 @@ def get_CFG():
         modality_path += modality
 
     middle_path = 'redcap_results/' + args.szr_types + '_' + modality_path + '_win_' + str(
-        args.win_len) + '_step_' + str(args.win_step)
+        args.win_len) + '_step_' + str(args.win_step) + '_sing_wrst_' + str(
+        args.sing_wrst)
 
     '''
     Feb 22, 2021 Stats:
