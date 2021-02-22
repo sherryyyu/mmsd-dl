@@ -61,7 +61,7 @@ def get_CFG():
     parser.add_argument('--motor_threshold', default=0.1, type=float,
                         help='motor_threshold')
 
-    parser.add_argument('--sing_wrst', default=0, type=int,
+    parser.add_argument('--sing_wrst', default=1, type=int,
                         help='0: two wrst when possible, 1: single wrst only')
 
     args = parser.parse_args()
@@ -72,7 +72,7 @@ def get_CFG():
     for modality in sorted(args.modalities):
         modality_path += modality
 
-    middle_path  = 'redcap_results/'+args.szr_types+'_'+modality_path+'_win_'+str(args.win_len)+'_step_'+str(args.win_step)
+    middle_path  = 'redcap_results/'+args.szr_types+'_'+modality_path+'_win_'+str(args.win_len)+'_step_'+str(args.win_step)+'_sing_wrst_'+str(args.sing_wrst)
 
 
     '''
