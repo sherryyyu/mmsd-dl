@@ -135,37 +135,36 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
             print_metrics(metrics)
     writer.close()
 
-    if start_epoch>=CFG.n_epochs:
-        metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
-        if CFG.verbose:
-            msg = "Epoch {:d}..{:d} val-auc {:.4f}"
-            print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
+    # if start_epoch>=CFG.n_epochs:
+    #     metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
+    #     if CFG.verbose:
+    #         msg = "Epoch {:d}..{:d} val-auc {:.4f}"
+    #         print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
 
 
     return metrics, best_auc
 
 
+def save_all_folds(fdir, metrics, cfg):
+    idenfifiers = cfg.szr_types + cfg.modalities
+    single = lambda x: 'single_wrst' if x else 'both_wrist'
+    title = '_'.join(idenfifiers)+'_'+single(cfg.sing_wrst)+'.txt'
+    f_path = os.path.join(fdir, title)
+    with open(f_path, 'w') as f:
+        f.write(metrics['roc_curve'])
+        f.write('\n')
+        f.write('Average AUC:'+ str(metrics['average_auc']))
+        f.write('Average delay'+str(metrics['average_delay']))
+
 if __name__ == '__main__':
+    cfg = get_CFG()
 
+    metapath = os.path.join(cfg.datadir, 'metadata.csv')
 
-    CFG = get_CFG()
-
-    # super slow
-    # patients = find_patients(CFG.datadir, CFG.szr_types)
-    # print(CFG.szr_types,'\'s patient group are',patients)
-
-    metapath = os.path.join(CFG.datadir, 'metadata.csv')
-
-    if len(CFG.patients)==0:
-        metadata_df = load_metadata(metapath, n=None,
-                                    modalities=CFG.modalities,
-                                    szr_sess_only=True,
-                                    patient_subset=None)
-    else:
-        metadata_df = load_metadata(metapath, n=None,
-                                    modalities=CFG.modalities,
-                                    szr_sess_only=True,
-                                    patient_subset=CFG.patients)
+    metadata_df = load_metadata(metapath, n=None,
+                                modalities=cfg.modalities,
+                                szr_sess_only=True,
+                                patient_subset=cfg.patients)
     folds = leave1out(metadata_df, 'patient')
 
     # cross_folds = crossfold(metadata_df, 'patient',3)
@@ -174,11 +173,14 @@ if __name__ == '__main__':
     testp_metrics = []
     for i, (train, test) in enumerate(folds):
         # best_auc = optimise(nb_classes, train, i)
+        print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+              f"{train['patient'].unique()} "
+              f"and test patients {test['patient'].unique()}... ")
 
-        print(test)
-        net = create_network(CFG, num_channels(CFG.modalities), nb_classes)
-        metrics, _ = train_network(CFG, net, train, test, 0, i)
+        net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
+        metrics, _ = train_network(cfg, net, train, test, 0, i)
         testp_metrics.append(metrics2print(metrics))
 
     print('LOO test results:')
-    print_all_folds(testp_metrics, len(folds))
+    results = print_all_folds(testp_metrics, len(folds))
+    save_all_folds('.', results, cfg)

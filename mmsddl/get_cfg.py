@@ -18,24 +18,30 @@ behaviour_arrast = ['Behavior arrest']
 szr_all = ['szr']
 '''
 
+
 def get_CFG():
     parser = argparse.ArgumentParser(description='PyTorch Training')
 
     if platform.system() == 'Linux':
         parser.add_argument('-r', '--ROOT', default='/fast2/',
                             help='root path for input data')
-        parser.add_argument('-o', '--out_dir', default='/slow1/out_datasets/bch/full_data_single_out',
+        parser.add_argument('-o', '--out_dir',
+                            default='/slow1/out_datasets/bch/full_data_single_out',
                             help='path to output prediction')
     elif platform.system() == 'Darwin':
-        parser.add_argument('-r', '--ROOT', default=os.path.join(Path.home(), 'datasets', 'bch'),
+        parser.add_argument('-r', '--ROOT',
+                            default=os.path.join(Path.home(), 'datasets',
+                                                 'bch'),
                             help='root path for input data')
-        parser.add_argument('-o', '--out_dir', default='/Users/jbtang/datasets/bch/full_data_single_out',
+        parser.add_argument('-o', '--out_dir',
+                            default='/Users/jbtang/datasets/bch/full_data_single_out',
                             help='path to output prediction')
     else:
         print('Unknown OS platform %s' % platform.system())
         exit()
 
-    parser.add_argument('--DATADIR', default='wristband_REDCap_202102_szr_cluster_win0')
+    parser.add_argument('--DATADIR',
+                        default='wristband_REDCap_202102_szr_cluster_win0')
 
     parser.add_argument('--n_epochs', default=4, type=int,
                         help='epochs')
@@ -68,12 +74,12 @@ def get_CFG():
 
     args.modalities = [item for item in args.modalities.split(',')]
 
-    modality_path=''
+    modality_path = ''
     for modality in sorted(args.modalities):
         modality_path += modality
 
-    middle_path  = 'redcap_results/'+args.szr_types+'_'+modality_path+'_win_'+str(args.win_len)+'_step_'+str(args.win_step)
-
+    middle_path = 'redcap_results/' + args.szr_types + '_' + modality_path + '_win_' + str(
+        args.win_len) + '_step_' + str(args.win_step)
 
     '''
     Feb 22, 2021 Stats:
@@ -91,40 +97,48 @@ def get_CFG():
 
     '''
 
-    if args.szr_types=='FBTC':
-        patients = ['c226', 'c421', 'c423', 'c189', 'c356', 'c433', 'c192', 'c241', 'c232', 'c242', 'c429', 'c417', 'c234', 'c225', 'c303', 'c245', 'c399', 'c299', 'c392', 'c296', 'c388']
-    elif args.szr_types=='gnr,Tonic':
-        patients = ['c147', 'c326', 'c340', 'c404', 'c243', 'c378', 'c353', 'c196', 'c313', 'c372', 'c364', 'c236', 'c370', 'c212']
-    elif args.szr_types=='focal,Tonic':
-        patients = ['c356', 'c263', 'c328', 'c388', 'c325', 'c242', 'c261', 'c329', 'c278', 'c377', 'c399', 'c390', 'c296', 'c235']
+    if args.szr_types == 'FBTC':
+        patients = ['c226', 'c421', 'c423', 'c189', 'c356', 'c433', 'c192',
+                    'c241', 'c232', 'c242', 'c429', 'c417', 'c234', 'c225',
+                    'c303', 'c245', 'c399', 'c299', 'c392', 'c296', 'c388']
+    elif args.szr_types == 'gnr,Tonic':
+        patients = ['c147', 'c326', 'c340', 'c404', 'c243', 'c378', 'c353',
+                    'c196', 'c313', 'c372', 'c364', 'c236', 'c370', 'c212']
+    elif args.szr_types == 'focal,Tonic':
+        patients = ['c356', 'c263', 'c328', 'c388', 'c325', 'c242', 'c261',
+                    'c329', 'c278', 'c377', 'c399', 'c390', 'c296', 'c235']
     elif args.szr_types == 'focal,subclinical':
-        patients = ['c263', 'c190', 'c282', 'c390', 'c365', 'c391', 'c425', 'c278', 'c283', 'c411', 'c305', 'c123', 'c274']
-    elif args.szr_types=='focal,Automatisms':
-        patients = ['c195', 'c284', 'c316', 'c221', 'c190', 'c427', 'c396', 'c389', 'c418', 'c391', 'c235']
+        patients = ['c263', 'c190', 'c282', 'c390', 'c365', 'c391', 'c425',
+                    'c278', 'c283', 'c411', 'c305', 'c123', 'c274']
+    elif args.szr_types == 'focal,Automatisms':
+        patients = ['c195', 'c284', 'c316', 'c221', 'c190', 'c427', 'c396',
+                    'c389', 'c418', 'c391', 'c235']
     elif args.szr_types == 'focal,Behavior arrest':
-        patients = ['c422', 'c190', 'c328', 'c282', 'c365', 'c394', 'c389', 'c329', 'c403', 'c390', 'c303']
+        patients = ['c422', 'c190', 'c328', 'c282', 'c365', 'c394', 'c389',
+                    'c329', 'c403', 'c390', 'c303']
     elif args.szr_types == 'gnr,Epileptic spasms':
-        patients = ['c428', 'c147', 'c285', 'c432', 'c410', 'c196', 'c273', 'c406']
+        patients = ['c428', 'c147', 'c285', 'c432', 'c410', 'c196', 'c273',
+                    'c406']
     elif args.szr_types == 'gnr,Tonic-clonic':
         patients = ['c380', 'c333', 'c290', 'c387', 'c372', 'c309']
     elif args.szr_types == 'szr':
-        patients=[]
+        patients = None
     else:
-        print('not supported seizure type',args.szr_types)
-        patients = []
+        print('not supported seizure type', args.szr_types)
+        patients = None
 
-
-    patients =  [p.upper() for p in sorted(patients)]
+    if patients is not None:
+        patients = [p.upper() for p in sorted(patients)]
 
     args.szr_types = [args.szr_types]
 
-    if args.sing_wrst==0:
+    if args.sing_wrst == 0:
         sing_wrst = False
     else:
         sing_wrst = True
 
     CFG = Config(
-        patients = patients,
+        patients=patients,
         n_epochs=args.n_epochs,
         lr=args.lr,
         batch_size=args.batch_size,
@@ -133,11 +147,11 @@ def get_CFG():
         win_step=args.win_step,
         rootdir=args.ROOT,
         datadir=os.path.join(args.ROOT, args.DATADIR),
-        traincachedir=os.path.join(args.ROOT,middle_path, 'cache/train/fold'),
-        valcachedir=os.path.join(args.ROOT,middle_path, 'cache/val/fold'),
-        testcachedir=os.path.join(args.ROOT,middle_path, 'cache/test/fold'),
-        plotdir=os.path.join(args.ROOT,middle_path, 'plots'),
-        ckpdir=os.path.join(args.ROOT,middle_path, 'checkpoints'),
+        traincachedir=os.path.join(args.ROOT, middle_path, 'cache/train/fold'),
+        valcachedir=os.path.join(args.ROOT, middle_path, 'cache/val/fold'),
+        testcachedir=os.path.join(args.ROOT, middle_path, 'cache/test/fold'),
+        plotdir=os.path.join(args.ROOT, middle_path, 'plots'),
+        ckpdir=os.path.join(args.ROOT, middle_path, 'checkpoints'),
         modalities=args.modalities,
         szr_types=args.szr_types,
         preictal_len=args.preictal_len,
@@ -145,6 +159,6 @@ def get_CFG():
         motor_threshold=args.motor_threshold,
         sequence_model=False,
         cacheclear=True,
-        sing_wrst = sing_wrst)
+        sing_wrst=sing_wrst)
 
     return CFG

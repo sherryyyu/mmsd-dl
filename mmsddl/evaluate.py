@@ -25,25 +25,25 @@ from mmsdcommon.metrics import szr_metrics
 from mmsddl.get_cfg import get_CFG
 
 
-def evaluate(CFG, net, testset, fdir, test_cache):
+def evaluate(cfg, net, testset, fdir, test_cache):
     net.eval()
     win_step = 10
     with torch.no_grad():
         szrids, tars, preds, probs = (gen_session(testset, fdir,
-                                          relabelling=CFG.szr_types)
+                                                  relabelling=cfg.szr_types)
                               >> NormaliseRaw()
-                              >> GenWindow(CFG.win_len, win_step)
+                              >> GenWindow(cfg.win_len, win_step)
                               >> Convert2numpy() >> test_cache
-                              >> MakeBatch(CFG, CFG.batch_size, test=True)
+                              >> MakeBatch(cfg, cfg.batch_size, test=True)
                               >> PredBatch(net) >> Unzip())
 
-        tars = tars >> Flatten() >> Clone(CFG.win_len) >> Collect()
-        szrids = szrids >> Flatten() >> Clone(CFG.win_len) >> Collect()
+        tars = tars >> Flatten() >> Clone(cfg.win_len) >> Collect()
+        szrids = szrids >> Flatten() >> Clone(cfg.win_len) >> Collect()
         probs = (probs >> Flatten() >> Get(1)
-                 >> Clone(CFG.win_len) >> Collect())
+                 >> Clone(cfg.win_len) >> Collect())
 
-    return szr_metrics(szrids, tars, probs, CFG.preictal_len, CFG.postictal_len,
-                       single_wrst=CFG.sing_wrst)
+    return szr_metrics(szrids, tars, probs, cfg.preictal_len, cfg.postictal_len,
+                       single_wrst=cfg.sing_wrst)
 
 if __name__ == '__main__':
     import os
@@ -54,25 +54,21 @@ if __name__ == '__main__':
 
 
 
-    CFG = get_CFG()
+    cfg = get_CFG()
 
 
     # fdir = os.path.join('/Users/shuangyu/datasets/bch', 'wristband_redcap_data')
     # relabelling = ['Tonic-clonic']
     # fdir = os.path.join('/Users/shuangyu/datasets/bch/wristband_REDCap_202102')
-    metapath = CFG.datadir
+    metapath = cfg.datadir
 
     relabelling = 'same'
 
-    if len(CFG.patients)==0:
-        p_set = load_metadata(os.path.join(metapath, 'metadata.csv'),
-                           modalities=CFG.modalities)
-    else:
-        p_set = load_metadata(os.path.join(metapath, 'metadata.csv'),
-                              patient_subset=CFG.patients, modalities=CFG.modalities)
+    p_set = load_metadata(os.path.join(metapath, 'metadata.csv'),
+                          patient_subset=cfg.patients, modalities=cfg.modalities)
 
-    net = create_network(CFG, num_channels(CFG.modalities), 2)
+    net = create_network(cfg, num_channels(cfg.modalities), 2)
     load_wgts(net)
-    val_cache = create_cache(CFG, 'tt', False)
-    metrics = evaluate(CFG, net, p_set, metapath, val_cache)
+    val_cache = create_cache(cfg, 'tt', False)
+    metrics = evaluate(cfg, net, p_set, metapath, val_cache)
     print(metrics['auc'])
