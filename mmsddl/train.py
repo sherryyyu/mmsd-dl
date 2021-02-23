@@ -135,26 +135,14 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
             print_metrics(metrics)
     writer.close()
 
-    # if start_epoch>=CFG.n_epochs:
-    #     metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
-    #     if CFG.verbose:
-    #         msg = "Epoch {:d}..{:d} val-auc {:.4f}"
-    #         print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
-
+    if start_epoch>=CFG.n_epochs:
+        metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
+        if CFG.verbose:
+            msg = "Epoch {:d}..{:d} val-auc {:.4f}"
+            print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
 
     return metrics, best_auc
 
-
-def save_all_folds(fdir, metrics, cfg):
-    idenfifiers = cfg.szr_types + cfg.modalities
-    single = lambda x: 'single_wrst' if x else 'both_wrist'
-    title = '_'.join(idenfifiers)+'_'+single(cfg.sing_wrst)+'.txt'
-    f_path = os.path.join(fdir, title)
-    with open(f_path, 'w') as f:
-        f.write(metrics['roc_curve'])
-        f.write('\n')
-        f.write('Average AUC: %5.3f, '%(metrics['average_auc']))
-        f.write('Average delay:%4.2f'%(metrics['average_delay']))
 
 if __name__ == '__main__':
     cfg = get_CFG()
