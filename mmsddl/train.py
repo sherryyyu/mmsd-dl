@@ -19,6 +19,8 @@ import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
 from torch.utils.tensorboard import SummaryWriter
+from joblib import Parallel, delayed
+import multiprocessing as mp
 
 from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import *
@@ -99,14 +101,11 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
     train_cache = create_cache(CFG, fold_no, True)
     val_cache = create_cache(CFG, fold_no, False)
 
-    n_sessions = len(trainset.index)
-
     for epoch in range(start_epoch, CFG.n_epochs):
         t = Timer()
         net.train()
 
         loss = (gen_session(trainset, CFG.datadir, relabelling=CFG.szr_types)
-                >> PrintProgress(n_sessions)
                 >> FilterSzrFree()
                 >> NormaliseRaw()
                 >> GenWindow(CFG.win_len, CFG.win_step)
@@ -144,6 +143,16 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
     return metrics, best_auc
 
 
+def train_fold(i, train, test, cfg, nb_classes):
+    print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+          f"{train['patient'].unique()} "
+          f"and test patients {test['patient'].unique()}... ")
+
+    net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
+    metrics, _ = train_network(cfg, net, train, test, 0, i)
+    return metrics2print(metrics)
+
+
 if __name__ == '__main__':
     cfg = get_CFG()
 
@@ -158,16 +167,14 @@ if __name__ == '__main__':
     # cross_folds = crossfold(metadata_df, 'patient',3)
     nb_classes = 2
 
-    testp_metrics = []
+    index_folds = []
     for i, (train, test) in enumerate(folds):
-        # best_auc = optimise(nb_classes, train, i)
-        print(f"Fold {i + 1}/{len(folds)}: loading train patients "
-              f"{train['patient'].unique()} "
-              f"and test patients {test['patient'].unique()}... ")
+        index_folds.append((i, train, test))
 
-        net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
-        metrics, _ = train_network(cfg, net, train, test, 0, i)
-        testp_metrics.append(metrics2print(metrics))
+    n_job = min(mp.cpu_count(), 40)
+    testp_metrics = Parallel(n_jobs=n_job, prefer="threads")(
+        delayed(train_fold)(i, train, test, cfg, nb_classes)
+        for i, train, test in index_folds)
 
     print('LOO test results:')
     results = print_all_folds(testp_metrics, len(folds), cfg, cfg.metric_results_dir)

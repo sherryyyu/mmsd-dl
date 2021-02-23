@@ -28,6 +28,7 @@ from mmsddl.get_cfg import get_CFG
 def evaluate(cfg, net, testset, fdir, test_cache):
     net.eval()
     win_step = 10
+    print('Evaluating: ', testset['patient'].unique())
     with torch.no_grad():
         szrids, tars, preds, probs = (gen_session(testset, fdir,
                                                   relabelling=cfg.szr_types)
