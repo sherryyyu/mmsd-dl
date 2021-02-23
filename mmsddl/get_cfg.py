@@ -70,6 +70,9 @@ def get_CFG():
     parser.add_argument('--sing_wrst', default=1, type=int,
                         help='0: two wrst when possible, 1: single wrst only')
 
+    parser.add_argument('--max_cpu', default=10, type=int,
+                        help='parallel tasks')
+
     args = parser.parse_args()
 
     args.modalities = [item for item in args.modalities.split(',')]
@@ -165,6 +168,7 @@ def get_CFG():
         sequence_model=False,
         cacheclear=True,
         sing_wrst=sing_wrst,
+        max_cpu=args.max_cpu
         )
 
     return CFG

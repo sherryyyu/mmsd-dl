@@ -18,7 +18,8 @@ import numpy as np
 import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
+
 from joblib import Parallel, delayed
 import multiprocessing as mp
 
@@ -90,7 +91,9 @@ def log2tensorboard(writer, epoch, loss, metrics):
 
 
 def train_network(CFG, net, trainset, valset, best_auc, fold_no):
-    writer = SummaryWriter()
+
+    # tensorboard off
+    # writer = SummaryWriter()
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), CFG.lr)
@@ -117,7 +120,9 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
                 >> Mean())
 
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
-        log2tensorboard(writer, epoch, loss, metrics)
+
+        # tensorboard off
+        # log2tensorboard(writer, epoch, loss, metrics)
 
         if CFG.verbose:
             msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
@@ -132,7 +137,9 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
 
         if CFG.verbose > 1:
             print_metrics(metrics)
-    writer.close()
+
+    # tensorboard off
+    #writer.close()
 
     if start_epoch>=CFG.n_epochs:
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
@@ -171,7 +178,7 @@ if __name__ == '__main__':
     for i, (train, test) in enumerate(folds):
         index_folds.append((i, train, test))
 
-    n_job = min(mp.cpu_count(), 40)
+    n_job = min(mp.cpu_count(), cfg.max_cpu)
     testp_metrics = Parallel(n_jobs=n_job, prefer="threads")(
         delayed(train_fold)(i, train, test, cfg, nb_classes)
         for i, train, test in index_folds)
