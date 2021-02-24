@@ -85,13 +85,13 @@ python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --
 ######################################
 
 # for all
-python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC &
-python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities EDA &
-python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities BVP &
-python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC,EDA &
-python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC,EDA,BVP
-python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC,BVP &
-python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities EDA,BVP
+python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC --crossfold 10 &
+python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities EDA --crossfold 10 &
+python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities BVP --crossfold 10 &
+python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC,EDA --crossfold 10 &
+python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC,EDA,BVP--crossfold 10 &
+python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities ACC,BVP --crossfold 10 &
+python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 30 --modalities EDA,BVP --crossfold 10
 
 # for FBTC
 python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'FBTC' --n_epochs 30 --modalities ACC &

@@ -128,7 +128,7 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
 
         if CFG.verbose:
             msg = "Fold {:d}/{:d} Epoch {:d}/{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
-            print(CFG.szr_types[0], msg.format(fold_no, total_folds, epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
+            print(CFG.szr_types[0], CFG.modalities, msg.format(fold_no, total_folds, epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
 
         state = get_state(fold_no, epoch, best_auc, metrics, net, optimizer)
         save_ckp(state, CFG.ckpdir, fold_no)
@@ -147,7 +147,7 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
         if CFG.verbose:
             msg = "Fold {:d}/{:d} Epoch {:d}/{:d} val-auc {:.4f}"
-            print(CFG.szr_types[0], msg.format(fold_no, total_folds,  start_epoch, CFG.n_epochs, metrics['auc']))
+            print(CFG.szr_types[0], CFG.modalities, msg.format(fold_no, total_folds,  start_epoch, CFG.n_epochs, metrics['auc']))
 
     return metrics, best_auc
 
