@@ -114,7 +114,7 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
                 >> GenWindow(CFG.win_len, CFG.win_step)
                 >> BalanceSession('under')
                 >> train_cache
-                >> Shuffle(50)
+                >> Shuffle(CFG.batch_size)
                 >> MakeBatch(CFG, CFG.batch_size)
                 >> TrainBatch(net, optimizer, criterion)
                 >> Mean())
