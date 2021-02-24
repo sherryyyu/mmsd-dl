@@ -112,14 +112,11 @@ def get_CFG():
                     'c241', 'c232', 'c242', 'c429', 'c417', 'c234', 'c225',
                     'c303', 'c245', 'c399', 'c299', 'c392', 'c296', 'c388']
     elif args.szr_types == 'gnr,Tonic':
-        patients = ['c147', 'c326', 'c340', 'c404', 'c243', 'c378', 'c353',
-                    'c196', 'c313', 'c372', 'c364', 'c236', 'c370', 'c212']
+        patients = ['c364', 'c243', 'c326', 'c236', 'c212', 'c313', 'c353', 'c372', 'c378', 'c340', 'c404', 'c196', 'c147', 'c330', 'c370']
     elif args.szr_types == 'focal,Tonic':
-        patients = ['c356', 'c263', 'c328', 'c388', 'c325', 'c242', 'c261',
-                    'c329', 'c278', 'c377', 'c399', 'c390', 'c296', 'c235']
+        patients = ['c235', 'c261', 'c366', 'c325', 'c377', 'c278', 'c242', 'c296', 'c328', 'c388', 'c390', 'c356', 'c263', 'c329', 'c399']
     elif args.szr_types == 'focal,subclinical':
-        patients = ['c263', 'c190', 'c282', 'c390', 'c365', 'c391', 'c425',
-                    'c278', 'c283', 'c411', 'c305', 'c123', 'c274']
+        patients = ['c425', 'c282', 'c365', 'c283', 'c411', 'c190', 'c305', 'c278', 'c358', 'c391', 'c274', 'c390', 'c123', 'c263']
     elif args.szr_types == 'focal,Automatisms':
         patients = ['c195', 'c284', 'c316', 'c221', 'c190', 'c427', 'c396',
                     'c389', 'c418', 'c391', 'c235']
@@ -129,6 +126,8 @@ def get_CFG():
     elif args.szr_types == 'gnr,Epileptic spasms':
         patients = ['c428', 'c147', 'c285', 'c432', 'c410', 'c196', 'c273',
                     'c406']
+    elif args.szr_types == 'focal,Clonic':
+        patients = ['c212', 'c232', 'c358', 'c427', 'c226', 'c429']
     elif args.szr_types == 'gnr,Tonic-clonic':
         patients = ['c380', 'c333', 'c290', 'c387', 'c372', 'c309']
     elif args.szr_types == 'szr':
