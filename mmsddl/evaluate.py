@@ -10,7 +10,7 @@ Function:
 
 import os
 import sys
-print('Current working path is %s' % str(os.getcwd()))
+#print('Current working path is %s' % str(os.getcwd()))
 sys.path.insert(0,os.getcwd())
 
 import numpy as np
@@ -28,7 +28,7 @@ from mmsddl.get_cfg import get_CFG
 def evaluate(cfg, net, testset, fdir, test_cache):
     net.eval()
     win_step = 10
-    print('Evaluating: ', testset['patient'].unique())
+    # print('Evaluating: ', testset['patient'].unique())
     with torch.no_grad():
         szrids, tars, preds, probs = (gen_session(testset, fdir,
                                                   relabelling=cfg.szr_types)

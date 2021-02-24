@@ -47,7 +47,7 @@ def get_CFG():
                         help='epochs')
     parser.add_argument('--szr_types', default='gnr,Tonic-clonic', type=str,
                         help='szr_types')
-    parser.add_argument('--modalities', default='EDA,ACC', type=str,
+    parser.add_argument('--modalities', default='EDA', type=str,
                         help='szr_types')
 
     parser.add_argument('--lr', default=1e-3, type=float,
@@ -108,30 +108,38 @@ def get_CFG():
     '''
 
     if args.szr_types == 'FBTC':
-        patients = ['c226', 'c421', 'c423', 'c189', 'c356', 'c433', 'c192',
-                    'c241', 'c232', 'c242', 'c429', 'c417', 'c234', 'c225',
-                    'c303', 'c245', 'c399', 'c299', 'c392', 'c296', 'c388']
-    elif args.szr_types == 'gnr,Tonic':
-        patients = ['c364', 'c243', 'c326', 'c236', 'c212', 'c313', 'c353', 'c372', 'c378', 'c340', 'c404', 'c196', 'c147', 'c330', 'c370']
+        patients = ['c189', 'c192', 'c225', 'c226', 'c232', 'c234', 'c241', 'c242', 'c245', 'c296',
+                    'c299', 'c303', 'c356', 'c388', 'c392', 'c399', 'c417', 'c421', 'c423', 'c429', 'c433']
     elif args.szr_types == 'focal,Tonic':
-        patients = ['c235', 'c261', 'c366', 'c325', 'c377', 'c278', 'c242', 'c296', 'c328', 'c388', 'c390', 'c356', 'c263', 'c329', 'c399']
+        patients = ['c235', 'c242', 'c261', 'c263', 'c278', 'c296', 'c325', 'c328', 'c329', 'c356',
+                    'c366', 'c377', 'c388', 'c390', 'c399']
+    elif args.szr_types == 'gnr,Tonic':
+        patients = ['c147', 'c196', 'c212', 'c236', 'c243', 'c313', 'c326', 'c330', 'c340', 'c353',
+                    'c364', 'c370', 'c372', 'c378', 'c404']
     elif args.szr_types == 'focal,subclinical':
-        patients = ['c425', 'c282', 'c365', 'c283', 'c411', 'c190', 'c305', 'c278', 'c358', 'c391', 'c274', 'c390', 'c123', 'c263']
+        patients = ['c123', 'c190', 'c263', 'c274', 'c278', 'c282', 'c283', 'c305', 'c358', 'c365',
+                    'c390', 'c391', 'c411', 'c425']
     elif args.szr_types == 'focal,Automatisms':
-        patients = ['c195', 'c284', 'c316', 'c221', 'c190', 'c427', 'c396',
-                    'c389', 'c418', 'c391', 'c235']
+        patients = ['c190', 'c195', 'c221', 'c235', 'c284', 'c316', 'c389', 'c391', 'c396', 'c418', 'c427']
     elif args.szr_types == 'focal,Behavior arrest':
-        patients = ['c422', 'c190', 'c328', 'c282', 'c365', 'c394', 'c389',
-                    'c329', 'c403', 'c390', 'c303']
+        patients = ['c190', 'c282', 'c303', 'c328', 'c329', 'c365', 'c389', 'c390', 'c394', 'c403', 'c422']
     elif args.szr_types == 'gnr,Epileptic spasms':
-        patients = ['c428', 'c147', 'c285', 'c432', 'c410', 'c196', 'c273',
-                    'c406']
+        patients = ['c147', 'c196', 'c273', 'c285', 'c406', 'c410', 'c428', 'c432']
     elif args.szr_types == 'focal,Clonic':
-        patients = ['c212', 'c232', 'c358', 'c427', 'c226', 'c429']
+        patients = ['c212', 'c226', 'c232', 'c358', 'c427', 'c429']
     elif args.szr_types == 'gnr,Tonic-clonic':
-        patients = ['c380', 'c333', 'c290', 'c387', 'c372', 'c309']
+        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
     elif args.szr_types == 'szr':
-        patients = None
+        patients = ['c123', 'c147', 'c189', 'c190', 'c192', 'c195', 'c196', 'c197', 'c198', 'c200',
+                    'c212', 'c213', 'c218', 'c221', 'c225', 'c226', 'c228', 'c232', 'c234', 'c235',
+                    'c236', 'c241', 'c242', 'c243', 'c245', 'c261', 'c263', 'c269', 'c273', 'c274',
+                    'c278', 'c282', 'c283', 'c284', 'c285', 'c290', 'c296', 'c299', 'c300', 'c302',
+                    'c303', 'c305', 'c308', 'c309', 'c313', 'c316', 'c325', 'c326', 'c328', 'c329',
+                    'c330', 'c333', 'c336', 'c340', 'c353', 'c356', 'c358', 'c362', 'c364', 'c365',
+                    'c366', 'c369', 'c370', 'c372', 'c377', 'c378', 'c379', 'c380', 'c387', 'c388',
+                    'c389', 'c390', 'c391', 'c392', 'c394', 'c396', 'c399', 'c403', 'c404', 'c406',
+                    'c410', 'c411', 'c417', 'c418', 'c421', 'c422', 'c423', 'c425', 'c427', 'c428',
+                    'c429', 'c430', 'c432', 'c433']
     else:
         print('not supported seizure type', args.szr_types)
         patients = None

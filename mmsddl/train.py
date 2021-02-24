@@ -10,7 +10,7 @@ Function:
 
 import os
 import sys
-print('Current working path is %s' % str(os.getcwd()))
+# print('Current working path is %s' % str(os.getcwd()))
 sys.path.insert(0,os.getcwd())
 
 import time
@@ -90,7 +90,7 @@ def log2tensorboard(writer, epoch, loss, metrics):
     writer.add_scalar("AUC/val", metrics['auc'], epoch)
 
 
-def train_network(CFG, net, trainset, valset, best_auc, fold_no):
+def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
 
     # tensorboard off
     # writer = SummaryWriter()
@@ -124,9 +124,11 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
         # tensorboard off
         # log2tensorboard(writer, epoch, loss, metrics)
 
+        # print('Evaluating: ', valset['patient'].unique())
+
         if CFG.verbose:
-            msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
-            print(msg.format(epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
+            msg = "Fold {:d}/{:d} Epoch {:d}/{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
+            print(CFG.szr_types[0], msg.format(fold_no, total_folds, epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
 
         state = get_state(fold_no, epoch, best_auc, metrics, net, optimizer)
         save_ckp(state, CFG.ckpdir, fold_no)
@@ -144,8 +146,8 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
     if start_epoch>=CFG.n_epochs:
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
         if CFG.verbose:
-            msg = "Epoch {:d}..{:d} val-auc {:.4f}"
-            print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
+            msg = "Fold {:d}/{:d} Epoch {:d}/{:d} val-auc {:.4f}"
+            print(CFG.szr_types[0], msg.format(fold_no, total_folds,  start_epoch, CFG.n_epochs, metrics['auc']))
 
     return metrics, best_auc
 
@@ -194,12 +196,12 @@ if __name__ == '__main__':
     for i, (train, test) in enumerate(folds):
         # best_auc = optimise(cfg, nb_classes, train, i)
 
-        print(f"Fold {i + 1}/{len(folds)}: loading train patients "
-              f"{train['patient'].unique()} "
-              f"and test patients {test['patient'].unique()}... ")
+        # print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+        #       f"{train['patient'].unique()} "
+        #       f"and test patients {test['patient'].unique()}... ")
 
         net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
-        metrics, _ = train_network(cfg, net, train, test, 0, i)
+        metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
         testp_metrics.append(metrics2print(metrics))
 
     print('LOO test results:')
