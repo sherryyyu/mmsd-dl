@@ -49,8 +49,8 @@ def BalanceSession(sample, sampling):
 
 
 def optimise(CFG, nb_classes, trainset, n_fold):
-    # folds = leave1out(trainset, 'patient')
-    folds = crossfold(trainset, 'patient', 3)
+    folds = leave1out(trainset, 'patient')
+    # folds = crossfold(trainset, 'patient', 3)
 
     all_metrics, best_auc = [], 0
     for i, (train, val) in enumerate(folds):
@@ -169,19 +169,38 @@ if __name__ == '__main__':
                                 modalities=cfg.modalities,
                                 szr_sess_only=True,
                                 patient_subset=cfg.patients)
-    folds = leave1out(metadata_df, 'patient')
+
+    if cfg.crossfold == -1:
+        folds = leave1out(metadata_df, 'patient')
+    else:
+        folds = crossfold(metadata_df, 'patient', cfg.crossfold)
 
     # cross_folds = crossfold(metadata_df, 'patient',3)
     nb_classes = 2
 
-    index_folds = []
-    for i, (train, test) in enumerate(folds):
-        index_folds.append((i, train, test))
+    # for parallel training, which seems work, but not really parallel for GPU tasks
+    # index_folds = []
+    # for i, (train, test) in enumerate(folds):
+    #     index_folds.append((i, train, test))
+    #
+    # n_job = min(mp.cpu_count(), cfg.max_cpu)
+    # testp_metrics = Parallel(n_jobs=n_job, prefer="threads")(
+    #     delayed(train_fold)(i, train, test, cfg, nb_classes)
+    #     for i, train, test in index_folds)
 
-    n_job = min(mp.cpu_count(), cfg.max_cpu)
-    testp_metrics = Parallel(n_jobs=n_job, prefer="threads")(
-        delayed(train_fold)(i, train, test, cfg, nb_classes)
-        for i, train, test in index_folds)
+
+    # for non parallel training
+    testp_metrics = []
+    for i, (train, test) in enumerate(folds):
+        # best_auc = optimise(cfg, nb_classes, train, i)
+
+        print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+              f"{train['patient'].unique()} "
+              f"and test patients {test['patient'].unique()}... ")
+
+        net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
+        metrics, _ = train_network(cfg, net, train, test, 0, i)
+        testp_metrics.append(metrics2print(metrics))
 
     print('LOO test results:')
     results = print_all_folds(testp_metrics, len(folds), cfg, cfg.metric_results_dir)

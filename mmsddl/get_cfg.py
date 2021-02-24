@@ -70,8 +70,11 @@ def get_CFG():
     parser.add_argument('--sing_wrst', default=1, type=int,
                         help='0: two wrst when possible, 1: single wrst only')
 
-    parser.add_argument('--max_cpu', default=10, type=int,
+    parser.add_argument('--max_cpu', default=1, type=int,
                         help='parallel tasks')
+
+    parser.add_argument('--crossfold', default=-1, type=int,
+                        help='-1: LOO, otherwise number of folds')
 
     args = parser.parse_args()
 
@@ -168,7 +171,8 @@ def get_CFG():
         sequence_model=False,
         cacheclear=True,
         sing_wrst=sing_wrst,
-        max_cpu=args.max_cpu
+        max_cpu=args.max_cpu,
+        crossfold = args.crossfold
         )
 
     return CFG
