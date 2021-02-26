@@ -10,7 +10,7 @@ Function:
 
 import os
 import sys
-print('Current working path is %s' % str(os.getcwd()))
+# print('Current working path is %s' % str(os.getcwd()))
 sys.path.insert(0,os.getcwd())
 
 import time
@@ -18,7 +18,8 @@ import numpy as np
 import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
+
 from joblib import Parallel, delayed
 import multiprocessing as mp
 
@@ -48,8 +49,8 @@ def BalanceSession(sample, sampling):
 
 
 def optimise(CFG, nb_classes, trainset, n_fold):
-    # folds = leave1out(trainset, 'patient')
-    folds = crossfold(trainset, 'patient', 3)
+    folds = leave1out(trainset, 'patient')
+    # folds = crossfold(trainset, 'patient', 3)
 
     all_metrics, best_auc = [], 0
     for i, (train, val) in enumerate(folds):
@@ -89,8 +90,10 @@ def log2tensorboard(writer, epoch, loss, metrics):
     writer.add_scalar("AUC/val", metrics['auc'], epoch)
 
 
-def train_network(CFG, net, trainset, valset, best_auc, fold_no):
-    writer = SummaryWriter()
+def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
+
+    # tensorboard off
+    # writer = SummaryWriter()
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), CFG.lr)
@@ -111,17 +114,21 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
                 >> GenWindow(CFG.win_len, CFG.win_step)
                 >> BalanceSession('under')
                 >> train_cache
-                >> Shuffle(50)
+                >> Shuffle(CFG.batch_size*2)
                 >> MakeBatch(CFG, CFG.batch_size)
                 >> TrainBatch(net, optimizer, criterion)
                 >> Mean())
 
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
-        log2tensorboard(writer, epoch, loss, metrics)
+
+        # tensorboard off
+        # log2tensorboard(writer, epoch, loss, metrics)
+
+        # print('Evaluating: ', valset['patient'].unique())
 
         if CFG.verbose:
-            msg = "Epoch {:d}..{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
-            print(msg.format(epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
+            msg = "Fold {:d}/{:d} Epoch {:d}/{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
+            print(valset['patient'].unique()[0], CFG.szr_types[0], CFG.modalities, msg.format(fold_no, total_folds, epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
 
         state = get_state(fold_no, epoch, best_auc, metrics, net, optimizer)
         save_ckp(state, CFG.ckpdir, fold_no)
@@ -132,13 +139,15 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no):
 
         if CFG.verbose > 1:
             print_metrics(metrics)
-    writer.close()
+
+    # tensorboard off
+    #writer.close()
 
     if start_epoch>=CFG.n_epochs:
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
         if CFG.verbose:
-            msg = "Epoch {:d}..{:d} val-auc {:.4f}"
-            print(msg.format(start_epoch, CFG.n_epochs,metrics['auc']))
+            msg = "Fold {:d}/{:d} Epoch {:d}/{:d} val-auc {:.4f}"
+            print(valset['patient'].unique()[0], CFG.szr_types[0], CFG.modalities, msg.format(fold_no, total_folds,  start_epoch, CFG.n_epochs, metrics['auc']))
 
     return metrics, best_auc
 
@@ -162,21 +171,39 @@ if __name__ == '__main__':
                                 modalities=cfg.modalities,
                                 szr_sess_only=True,
                                 patient_subset=cfg.patients)
-    folds = leave1out(metadata_df, 'patient')
+
+    if cfg.crossfold == -1:
+        folds = leave1out(metadata_df, 'patient')
+    else:
+        folds = crossfold(metadata_df, 'patient', cfg.crossfold)
 
     # cross_folds = crossfold(metadata_df, 'patient',3)
     nb_classes = 2
 
-    index_folds = []
+    # for parallel training, which seems work, but not really parallel for GPU tasks
+    # index_folds = []
+    # for i, (train, test) in enumerate(folds):
+    #     index_folds.append((i, train, test))
+    #
+    # n_job = min(mp.cpu_count(), cfg.max_cpu)
+    # testp_metrics = Parallel(n_jobs=n_job, prefer="threads")(
+    #     delayed(train_fold)(i, train, test, cfg, nb_classes)
+    #     for i, train, test in index_folds)
+
+
+    # for non parallel training
+    testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        index_folds.append((i, train, test))
+        # best_auc = optimise(cfg, nb_classes, train, i)
 
-    n_job = min(mp.cpu_count(), 40)
-    testp_metrics = Parallel(n_jobs=n_job, prefer="threads")(
-        delayed(train_fold)(i, train, test, cfg, nb_classes)
-        for i, train, test in index_folds)
+        # print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+        #       f"{train['patient'].unique()} "
+        #       f"and test patients {test['patient'].unique()}... ")
 
-    print('LOO test results:')
+        net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
+        metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
+        testp_metrics.append(metrics2print(metrics))
+
     results = print_all_folds(testp_metrics, len(folds),
                               cfg, cfg.metric_results_dir, cfg.datadir)
     save_all_folds(cfg.metric_results_dir, results, cfg)
