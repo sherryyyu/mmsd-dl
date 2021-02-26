@@ -25,17 +25,11 @@ def get_CFG():
     if platform.system() == 'Linux':
         parser.add_argument('-r', '--ROOT', default='/fast2/',
                             help='root path for input data')
-        parser.add_argument('-o', '--out_dir',
-                            default='/slow1/out_datasets/bch/full_data_single_out',
-                            help='path to output prediction')
     elif platform.system() == 'Darwin':
         parser.add_argument('-r', '--ROOT',
                             default=os.path.join(Path.home(), 'datasets',
                                                  'bch'),
                             help='root path for input data')
-        parser.add_argument('-o', '--out_dir',
-                            default='/Users/jbtang/datasets/bch/full_data_single_out',
-                            help='path to output prediction')
     else:
         print('Unknown OS platform %s' % platform.system())
         exit()
@@ -76,7 +70,14 @@ def get_CFG():
     parser.add_argument('--crossfold', default=-1, type=int,
                         help='-1: LOO, otherwise number of folds')
 
+    parser.add_argument('--results_dir',type=str,
+                        default='redcap_results',
+                        help='path to output prediction')
+
     args = parser.parse_args()
+
+    results_dir = os.path.join(args.ROOT, args.results_dir)
+
 
     args.modalities = [item for item in args.modalities.split(',')]
 
@@ -169,7 +170,7 @@ def get_CFG():
         testcachedir=os.path.join(args.ROOT, middle_path, 'cache/test/fold'),
         plotdir=os.path.join(args.ROOT, middle_path, 'plots'),
         ckpdir=os.path.join(args.ROOT, middle_path, 'checkpoints'),
-        metric_results_dir = os.path.join(args.ROOT,'redcap_results/'),
+        metric_results_dir = results_dir,
         modalities=args.modalities,
         szr_types=args.szr_types,
         preictal_len=args.preictal_len,
