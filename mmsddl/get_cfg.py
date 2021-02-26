@@ -89,8 +89,8 @@ def get_CFG():
     #     args.win_len) + '_step_' + str(args.win_step) + '_sing_wrst_' + str(
     #     args.sing_wrst)
 
-    middle_path = 'redcap_results/' + args.szr_types + '_' + modality_path + '_win_' + str(
-        args.win_len) + '_step_' + str(args.win_step)
+    middle_path = os.path.join(args.results_dir, args.szr_types + '_' + modality_path + '_win_' + str(
+        args.win_len) + '_step_' + str(args.win_step))
 
     '''
     Feb 22, 2021 Stats:
