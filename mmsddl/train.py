@@ -177,5 +177,6 @@ if __name__ == '__main__':
         for i, train, test in index_folds)
 
     print('LOO test results:')
-    results = print_all_folds(testp_metrics, len(folds), cfg, cfg.metric_results_dir)
+    results = print_all_folds(testp_metrics, len(folds),
+                              cfg, cfg.metric_results_dir, cfg.datadir)
     save_all_folds(cfg.metric_results_dir, results, cfg)
