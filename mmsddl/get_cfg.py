@@ -80,9 +80,10 @@ def get_CFG():
 
 
     args.modalities = [item for item in args.modalities.split(',')]
+    args.modalities = sorted(args.modalities)
 
     modality_path = ''
-    for modality in sorted(args.modalities):
+    for modality in args.modalities:
         modality_path += modality
 
     # middle_path = 'redcap_results/' + args.szr_types + '_' + modality_path + '_win_' + str(
