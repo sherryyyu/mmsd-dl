@@ -37,9 +37,9 @@ def get_CFG():
     parser.add_argument('--DATADIR',
                         default='wristband_REDCap_202102_szr_cluster_win0')
 
-    parser.add_argument('--n_epochs', default=4, type=int,
+    parser.add_argument('--n_epochs', default=2, type=int,
                         help='epochs')
-    parser.add_argument('--szr_types', default='gnr,Tonic-clonic', type=str,
+    parser.add_argument('--szr_types', default='gnr,Epileptic spasms', type=str,
                         help='szr_types')
     parser.add_argument('--modalities', default='EDA', type=str,
                         help='szr_types')
