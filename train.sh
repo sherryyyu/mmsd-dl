@@ -69,7 +69,20 @@ python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --
 python3 mmsddl/train.py --batch_size 256 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'focal,Behavior arrest' --n_epochs 30 --modalities EDA,BVP --results_dir eda_shift120 --DATADIR wristband_REDCap_202102_eda_shift120 &
 
 
+# FBTC & GTC again
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 15 --modalities EDA --crossfold 10 --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 15 --modalities ACC,EDA --crossfold 10 --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 15 --modalities ACC,EDA,BVP --crossfold 10 --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'szr' --n_epochs 15 --modalities EDA,BVP --crossfold 10 --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
 
+
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'FBTC' --n_epochs 30 --modalities ACC,EDA --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'FBTC' --n_epochs 30 --modalities ACC,EDA,BVP --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'FBTC' --n_epochs 30 --modalities EDA,BVP --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'gnr,Tonic-clonic' --n_epochs 15 --modalities ACC,EDA --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'gnr,Tonic-clonic' --n_epochs 15 --modalities ACC,EDA,BVP --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
+nohup python3 mmsddl/train.py --batch_size 32 --lr 0.001 --win_len 10 --win_step 2 --sing_wrst 1 --szr_types 'gnr,Tonic-clonic' --n_epochs 15 --modalities EDA,BVP --results_dir eda_shift120_again --DATADIR wristband_REDCap_202102_eda_shift120 &
 
 
 

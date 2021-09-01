@@ -1,0 +1,27 @@
+focal,non-motor,Sensory: 0.6830494378314121
+focal,subclinical,invalid: 0.6359036817782158
+gnr,motor,Epileptic spasms: 0.6800257038319066
+gnr,motor,Tonic: 0.7856263650976928
+focal,motor,FBTC: 0.880812830730074
+focal,motor,Automatisms: 0.8125451380030728
+focal,non-motor,Cognitive: 0.6981386882100126
+focal,off camera,invalid: 0.8845087938133813
+focal,non-motor,Behavior arrest: 0.6677096822177061
+focal,uncls,invalid: 0.8177660315527068
+focal,motor,Myoclonic: 0.5961038847244068
+gnr,motor,Atonic: 0.8209096923151065
+gnr,subclinical,invalid: 0.8146223707903073
+gnr,off camera,invalid: 0.749921797303869
+gnr,motor,Clonic: 0.8659250918936443
+gnr,motor,Unclassified: 0.8146223707903073
+gnr,non-motor,Typical abs: 0.4651713230494232
+focal,motor,Clonic: 0.7695874753015294
+focal,motor,Hyperkinetic: 0.9322815277589147
+focal,motor,Tonic: 0.7331628800746174
+gnr,uncls,invalid: 0.6907212062930169
+gnr,motor,Tonic-clonic: 0.8977945525360016
+gnr,motor,Myoclonic: 0.6909623191030225
+focal,non-motor,Unclassified: 0.34868764046912853
+focal,non-motor,Autonomic: 0.7017178744638625
+focal,motor,Atonic: 0.7784081698816664
+unk/uncls,uncls,invalid: 0.8146223707903073
