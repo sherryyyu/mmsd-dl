@@ -8,7 +8,7 @@ setup(
     url='https://github.com/sherryyyu/mmsd-dl',
     author='Shuang Yu, Fatemeh Jalali, Jianbin Tang',
     author_email='sherry.shuang.yu@gmail.com',
-    description='Exploring CNN networks for multi-modal seizure detection',
+    description='Exploring deep neural networks for multi-modal seizure detection',
     packages=find_packages(),
     install_requires=['imbalanced-learn',
                       'matplotlib',

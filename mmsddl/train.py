@@ -10,7 +10,7 @@ Function:
 
 import os
 import sys
-# print('Current working path is %s' % str(os.getcwd()))
+print('Current working path is %s' % str(os.getcwd()))
 sys.path.insert(0,os.getcwd())
 
 import time
@@ -18,7 +18,7 @@ import numpy as np
 import torch
 from nutsflow import *
 from nutsml import PrintType, PlotLines
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from joblib import Parallel, delayed
 import multiprocessing as mp
@@ -26,8 +26,9 @@ import multiprocessing as mp
 from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import *
 from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance,
-                                   NormaliseRaw, FilterSzrFree)
-from mmsdcommon.util import num_channels, metrics2print, print_all_folds,save_all_folds
+                                   NormaliseRaw, FilterSzrFree, BandpassBvp)
+from mmsdcommon.util import (num_channels, metrics2print, print_all_folds,
+                             PrintAll, save_all_folds)
 
 from mmsddl.network import create_network
 from mmsddl.get_cfg import get_CFG
@@ -93,7 +94,7 @@ def log2tensorboard(writer, epoch, loss, metrics):
 def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
 
     # tensorboard off
-    # writer = SummaryWriter()
+    writer = SummaryWriter()
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), CFG.lr)
@@ -110,6 +111,7 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
 
         loss = (gen_session(trainset, CFG.datadir, relabelling=CFG.szr_types)
                 >> FilterSzrFree()
+                >> BandpassBvp()
                 >> NormaliseRaw()
                 >> GenWindow(CFG.win_len, CFG.win_step)
                 >> BalanceSession('under')
@@ -122,7 +124,7 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
 
         # tensorboard off
-        # log2tensorboard(writer, epoch, loss, metrics)
+        log2tensorboard(writer, epoch, loss, metrics)
 
         # print('Evaluating: ', valset['patient'].unique())
 
@@ -141,7 +143,7 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
             print_metrics(metrics)
 
     # tensorboard off
-    #writer.close()
+    writer.close()
 
     if start_epoch>=CFG.n_epochs:
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
