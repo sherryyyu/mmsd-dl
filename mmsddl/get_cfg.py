@@ -23,7 +23,8 @@ def get_CFG():
     parser = argparse.ArgumentParser(description='PyTorch Training')
 
     if platform.system() == 'Linux':
-        parser.add_argument('-r', '--ROOT', default='~/dataset',
+        parser.add_argument('-r', '--ROOT', default=os.path.join(Path.home(),
+                                                                 'dataset'),
                             help='root path for input data')
     elif platform.system() == 'Darwin':
         parser.add_argument('-r', '--ROOT',
