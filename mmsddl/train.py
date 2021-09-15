@@ -34,7 +34,7 @@ from mmsddl.network import create_network
 from mmsddl.get_cfg import get_CFG
 from mmsddl.common import MakeBatch, TrainBatch, Convert2numpy
 from mmsddl.evaluate import evaluate
-from mmsddl.util import print_metrics
+from mmsddl.util import print_metrics, early_stopping
 from mmsddl.network import save_wgts, load_wgts, save_ckp, load_ckp
 
 
@@ -59,12 +59,13 @@ def optimise(CFG, nb_classes, trainset, n_fold):
               f"{train['patient'].unique()} "
               f"and validation patients {val['patient'].unique()}... ")
 
-        net = create_network(num_channels(CFG.modalities), nb_classes)
-        i_fold = str(n_fold) + '-' + str(i)
-        metrics, best_auc = train_network(net, train, val, best_auc, i_fold)
+        net = create_network(CFG, num_channels(CFG.modalities), nb_classes)
+        # i_fold = str(n_fold) + '-' + str(i)
+        metrics, best_auc = train_network(CFG, net, train, val, best_auc, i, len(folds))
         all_metrics.append(metrics2print(metrics))
 
-    print_all_folds(all_metrics, len(folds))
+    print_all_folds(all_metrics, len(folds),
+                    cfg, cfg.metric_results_dir, cfg.datadir)
 
     return best_auc
 
@@ -74,11 +75,13 @@ def create_cache(CFG, fold_no, is_train):
     return Cache(cachedir + str(fold_no), CFG.cacheclear)
 
 
-def get_state(i, epoch, best_auc, metrics, net, optimizer):
+def get_state(i, epoch, best_auc, es_cnt, es_best_auc, metrics, net, optimizer):
     state = {
         'fold_no': i,
         'epoch': epoch + 1,
         'best_auc': best_auc,
+        'es_cnt': es_cnt,
+        'es_best_auc': es_best_auc,
         'metrics': metrics,
         'state_dict': net.state_dict(),
         'optimizer': optimizer.state_dict(),
@@ -100,12 +103,19 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
     optimizer = torch.optim.Adam(net.parameters(), CFG.lr)
 
     state = load_ckp(CFG.ckpdir, net, optimizer, best_auc, fold_no)
-    net, optimizer, start_epoch, best_auc, metrics = state
+    net, optimizer, start_epoch, best_auc, es_cnt, es_best_auc, metrics = state
 
     train_cache = create_cache(CFG, fold_no, True)
     val_cache = create_cache(CFG, fold_no, False)
 
+    stop_training = False
+    if CFG.early_stopping and es_cnt >= CFG.patience:
+        stop_training = True
+
     for epoch in range(start_epoch, CFG.n_epochs):
+        if stop_training:
+            break
+
         t = Timer()
         net.train()
 
@@ -123,6 +133,9 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
 
         metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
 
+        stop_training, es_cnt, es_best_auc = early_stopping(CFG, metrics['auc'],
+                                                            es_cnt, es_best_auc)
+
         # tensorboard off
         log2tensorboard(writer, epoch, loss, metrics)
 
@@ -130,9 +143,14 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
 
         if CFG.verbose:
             msg = "Fold {:d}/{:d} Epoch {:d}/{:d}  {:s} : loss {:.4f} val-auc {:.4f}"
-            print(valset['patient'].unique()[0], CFG.szr_types[0], CFG.modalities, msg.format(fold_no, total_folds, epoch, CFG.n_epochs, str(t), loss, metrics['auc']))
+            print(valset['patient'].unique()[0], CFG.szr_types[0], CFG.modalities,
+                  msg.format(fold_no, total_folds, epoch+1, CFG.n_epochs, str(t),
+                             loss, metrics['auc']))
+            if stop_training:
+                print("Training stopped early")
 
-        state = get_state(fold_no, epoch, best_auc, metrics, net, optimizer)
+        state = get_state(fold_no, epoch, best_auc,
+                          es_cnt, es_best_auc, metrics, net, optimizer)
         save_ckp(state, CFG.ckpdir, fold_no)
 
         if metrics['auc'] > best_auc:
@@ -142,14 +160,15 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
         if CFG.verbose > 1:
             print_metrics(metrics)
 
+
     # tensorboard off
     writer.close()
 
-    if start_epoch>=CFG.n_epochs:
-        metrics = evaluate(CFG, net, valset, CFG.datadir, val_cache)
+    if start_epoch>=CFG.n_epochs or stop_training:
         if CFG.verbose:
             msg = "Fold {:d}/{:d} Epoch {:d}/{:d} val-auc {:.4f}"
-            print(valset['patient'].unique()[0], CFG.szr_types[0], CFG.modalities, msg.format(fold_no, total_folds,  start_epoch, CFG.n_epochs, metrics['auc']))
+            print(valset['patient'].unique()[0], CFG.szr_types[0], CFG.modalities,
+                  msg.format(fold_no, total_folds,  start_epoch, CFG.n_epochs, metrics['auc']))
 
     return metrics, best_auc
 
@@ -196,7 +215,7 @@ if __name__ == '__main__':
     # for non parallel training
     testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        # best_auc = optimise(cfg, nb_classes, train, i)
+        best_auc = optimise(cfg, nb_classes, train, i)
 
         # print(f"Fold {i + 1}/{len(folds)}: loading train patients "
         #       f"{train['patient'].unique()} "
@@ -205,6 +224,7 @@ if __name__ == '__main__':
         net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
         metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
         testp_metrics.append(metrics2print(metrics))
+        break
 
     results = print_all_folds(testp_metrics, len(folds),
                               cfg, cfg.metric_results_dir, cfg.datadir)

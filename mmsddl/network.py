@@ -122,10 +122,12 @@ def load_ckp(ckpdir, net, optimizer, best_auc, fold_no):
         net.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         best_auc = checkpoint['best_auc']
-        return net, optimizer, checkpoint['epoch'], best_auc, checkpoint[
+        es_cnt = checkpoint['es_cnt']
+        es_best_auc = checkpoint['es_best_auc']
+        return net, optimizer, checkpoint['epoch'], best_auc, es_cnt, es_best_auc, checkpoint[
             'metrics']
     else:
-        return net, optimizer, 0, best_auc, None
+        return net, optimizer, 0, best_auc, 0, None, None
 
 
 if __name__ == '__main__':
