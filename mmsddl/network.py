@@ -21,12 +21,14 @@ class HAR_model(nn.Module):
     def __init__(self, input_size, num_classes):
         super().__init__()
 
+        n_filter = 128
+
         # Extract features, 1D conv layers
         self.features = nn.Sequential(  # input: 640 * input_size
-            nn.Conv1d(input_size, 64, 3, padding=1),
+            nn.Conv1d(input_size, n_filter, 3, padding=1),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Conv1d(64, 64, 3, padding=1),
+            nn.Conv1d(n_filter, n_filter, 3, padding=1),
             nn.ReLU(),
             nn.MaxPool1d(2)
         )
@@ -40,7 +42,7 @@ class HAR_model(nn.Module):
         self.gap = nn.Sequential(
             nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
-            nn.Linear(64, num_classes),
+            nn.Linear(n_filter, num_classes),
         )
 
     def forward(self, x):
@@ -89,7 +91,7 @@ def create_network(CFG, input_dim, num_classes):
         model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
     if CFG.verbose > 1:
-        print_summary(model, input_dim)
+        print_summary(CFG, model, input_dim)
     return model
 
 
