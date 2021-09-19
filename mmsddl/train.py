@@ -201,7 +201,7 @@ if __name__ == '__main__':
     # cross_folds = crossfold(metadata_df, 'patient',3)
     nb_classes = 2
 
-    # for parallel training, which seems work, but not really parallel for GPU tasks
+    # for parallel training, which seems working, but not really parallel for GPU tasks
     # index_folds = []
     # for i, (train, test) in enumerate(folds):
     #     index_folds.append((i, train, test))
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     # for non parallel training
     testp_metrics = []
     for i, (train, test) in enumerate(folds):
-        best_auc = optimise(cfg, nb_classes, train, i)
+        # best_auc = optimise(cfg, nb_classes, train, i)
 
         # print(f"Fold {i + 1}/{len(folds)}: loading train patients "
         #       f"{train['patient'].unique()} "
@@ -224,7 +224,7 @@ if __name__ == '__main__':
         net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
         metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
         testp_metrics.append(metrics2print(metrics))
-        break
+        # break
 
     results = print_all_folds(testp_metrics, len(folds),
                               cfg, cfg.metric_results_dir, cfg.datadir)

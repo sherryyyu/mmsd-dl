@@ -21,7 +21,7 @@ class HAR_model(nn.Module):
     def __init__(self, input_size, num_classes):
         super().__init__()
 
-        n_filter = 128
+        n_filter = 256
 
         # Extract features, 1D conv layers
         self.features = nn.Sequential(  # input: 640 * input_size
