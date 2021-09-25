@@ -217,9 +217,9 @@ if __name__ == '__main__':
     for i, (train, test) in enumerate(folds):
         # best_auc = optimise(cfg, nb_classes, train, i)
 
-        # print(f"Fold {i + 1}/{len(folds)}: loading train patients "
-        #       f"{train['patient'].unique()} "
-        #       f"and test patients {test['patient'].unique()}... ")
+        print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+              f"{train['patient'].unique()} "
+              f"and test patients {test['patient'].unique()}... ")
 
         net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
         metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
