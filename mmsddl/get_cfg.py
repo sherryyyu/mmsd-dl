@@ -79,7 +79,7 @@ def get_CFG():
 
     args = parser.parse_args()
 
-    results_dir = os.path.join(args.ROOT, args.results_dir)
+
 
 
     args.modalities = [item for item in args.modalities.split(',')]
@@ -95,6 +95,7 @@ def get_CFG():
 
     middle_path = os.path.join(args.results_dir, args.szr_types + '_' + modality_path + '_win_' + str(
         args.win_len) + '_step_' + str(args.win_step))
+
 
     '''
     Feb 22, 2021 Stats:
@@ -161,6 +162,16 @@ def get_CFG():
     else:
         sing_wrst = True
 
+    if platform.system() == 'Linux':
+        logs_root = os.path.join(Path.home(), 'dataset')
+        results_dir = os.path.join(logs_root, args.results_dir)
+    elif platform.system() == 'Darwin':
+        logs_root = args.ROOT
+        results_dir = os.path.join(args.ROOT, args.results_dir)
+    else:
+        print('Unknown OS platform %s' % platform.system())
+        exit()
+
     CFG = Config(
         patients=patients,
         n_epochs=args.n_epochs,
@@ -174,11 +185,11 @@ def get_CFG():
         win_step=args.win_step,
         rootdir=args.ROOT,
         datadir=os.path.join(args.ROOT, args.DATADIR),
-        traincachedir=os.path.join(args.ROOT, middle_path, 'cache/train/fold'),
-        valcachedir=os.path.join(args.ROOT, middle_path, 'cache/val/fold'),
-        testcachedir=os.path.join(args.ROOT, middle_path, 'cache/test/fold'),
-        plotdir=os.path.join(args.ROOT, middle_path, 'plots'),
-        ckpdir=os.path.join(args.ROOT, middle_path, 'checkpoints'),
+        traincachedir=os.path.join(logs_root, middle_path, 'cache/train/fold'),
+        valcachedir=os.path.join(logs_root, middle_path, 'cache/val/fold'),
+        testcachedir=os.path.join(logs_root, middle_path, 'cache/test/fold'),
+        plotdir=os.path.join(logs_root, middle_path, 'plots'),
+        ckpdir=os.path.join(logs_root, middle_path, 'checkpoints'),
         metric_results_dir = results_dir,
         modalities=args.modalities,
         szr_types=args.szr_types,

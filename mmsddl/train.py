@@ -55,7 +55,9 @@ def optimise(CFG, nb_classes, trainset, n_fold):
 
     all_metrics, best_auc = [], 0
     for i, (train, val) in enumerate(folds):
-        print(f"Fold {i + 1}/{len(folds)}: loading train patients {train['patient'].unique()} and validation patients {val['patient'].unique()}... ")
+        print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+              f"{train['patient'].unique()} "
+              f"and validation patients {val['patient'].unique()}... ")
 
         net = create_network(CFG, num_channels(CFG.modalities), nb_classes)
         # i_fold = str(n_fold) + '-' + str(i)
