@@ -23,20 +23,22 @@ def get_CFG():
     parser = argparse.ArgumentParser(description='PyTorch Training')
 
     if platform.system() == 'Linux':
-        parser.add_argument('-r', '--ROOT', default=os.path.join(Path.home(),
-                                                                 'dataset'),
+        root = '/bigdata/datasets/bch/'
+        parser.add_argument('-r', '--ROOT', default=root,
                             help='root path for input data')
+        parser.add_argument('--DATADIR',
+                            default='wristband_REDCap_202109_szr_cluster_win0')
     elif platform.system() == 'Darwin':
         parser.add_argument('-r', '--ROOT',
                             default=os.path.join(Path.home(), 'datasets',
                                                  'bch'),
                             help='root path for input data')
+        parser.add_argument('--DATADIR',
+                            default='wristband_REDCap_202102_szr_cluster_win0')
     else:
         print('Unknown OS platform %s' % platform.system())
         exit()
 
-    parser.add_argument('--DATADIR',
-                        default='wristband_REDCap_202102_szr_cluster_win0')
 
     parser.add_argument('--n_epochs', default=2, type=int,
                         help='epochs')
@@ -164,7 +166,7 @@ def get_CFG():
         n_epochs=args.n_epochs,
         lr=args.lr,
         early_stopping=True,
-        patience=20,
+        patience=30,
         min_delta=0,
         batch_size=args.batch_size,
         verbose=1,
