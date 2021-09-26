@@ -136,7 +136,10 @@ def get_CFG():
     elif args.szr_types == 'gnr,Tonic-clonic':
         patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
     elif args.szr_types == 'Hyperkinetic':
-        patients = ['C213', 'C221', 'C226', 'C369']
+        if platform.system() == 'Linux':
+            patients = ['C213', 'C221', 'C226', 'C369', 'C443', 'C436', 'C594']
+        elif platform.system() == 'Darwin':
+            patients = ['C213', 'C221', 'C226', 'C369']
     elif args.szr_types == 'szr':
         # patients = ['c123', 'c147', 'c189', 'c190', 'c192', 'c195', 'c196', 'c197', 'c198', 'c200',
         #             'c212', 'c213', 'c218', 'c221', 'c225', 'c226', 'c228', 'c232', 'c234', 'c235',
