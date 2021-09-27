@@ -21,7 +21,7 @@ class HAR_model(nn.Module):
     def __init__(self, input_size, num_classes):
         super().__init__()
 
-        n_filter = 256
+        n_filter = 64
 
         # Extract features, 1D conv layers
         self.features = nn.Sequential(  # input: 640 * input_size
@@ -74,10 +74,10 @@ class LSTMClassifier(nn.Module):
 
 
 def print_summary(CFG, net, input_dim):
-    if CFG.sequence_model:
+    if CFG.network is 'lstm':
         # RNN: batch, seq_len, input_dim
         t = torch.zeros((1, 640, input_dim)).to(DEVICE)
-    else:
+    elif CFG.network is 'cnn':
         # CNN: batch, input_dim, seq_len
         t = torch.zeros((1, input_dim, 640)).to(DEVICE)
     print('input  dim', t.size())
@@ -85,9 +85,9 @@ def print_summary(CFG, net, input_dim):
 
 
 def create_network(CFG, input_dim, num_classes):
-    if CFG.sequence_model:
-        model = LSTMClassifier(input_dim, 200, 1, num_classes)
-    else:
+    if CFG.network is 'lstm':
+        model = LSTMClassifier(input_dim, 400, 3, num_classes)
+    elif CFG.network is 'cnn':
         model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
     if CFG.verbose > 1:

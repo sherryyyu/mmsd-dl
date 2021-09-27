@@ -77,6 +77,10 @@ def get_CFG():
                         default='redcap_results',
                         help='path to output prediction')
 
+    parser.add_argument('--network', type=str,
+                        default='cnn',
+                        help='the neural network model for prediction')
+
     args = parser.parse_args()
 
 
@@ -200,7 +204,7 @@ def get_CFG():
         preictal_len=args.preictal_len,
         postictal_len=args.postictal_len,
         motor_threshold=args.motor_threshold,
-        sequence_model=False,
+        network=args.network,
         cacheclear=True,
         sing_wrst=sing_wrst,
         max_cpu=args.max_cpu,

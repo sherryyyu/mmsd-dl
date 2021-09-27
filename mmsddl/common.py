@@ -32,7 +32,7 @@ def MakeBatch(samples, CFG, batchsize, test = False):
         else:
             meta, targets, data = batch >> Unzip()
         data_batch = torch.tensor(data).to(DEVICE)
-        if not CFG.sequence_model:
+        if CFG.network is 'cnn':
             # change channel location for pytorch compatibility
             data_batch = data_batch.permute(0, 2, 1)
         tar_batch = torch.tensor(targets).to(DEVICE)
