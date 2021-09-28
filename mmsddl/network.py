@@ -89,6 +89,8 @@ def create_network(CFG, input_dim, num_classes):
         model = LSTMClassifier(input_dim, 400, 3, num_classes)
     elif CFG.network is 'cnn':
         model = HAR_model(input_dim, num_classes)
+    else:
+        model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
     if CFG.verbose > 1:
         print_summary(CFG, model, input_dim)
