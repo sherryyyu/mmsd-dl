@@ -74,10 +74,12 @@ class LSTMClassifier(nn.Module):
 
 
 def print_summary(CFG, net, input_dim):
-    if CFG.network is 'lstm':
+    t = None
+    print(CFG.network == 'lstm')
+    if CFG.network == 'lstm':
         # RNN: batch, seq_len, input_dim
         t = torch.zeros((1, 640, input_dim)).to(DEVICE)
-    elif CFG.network is 'cnn':
+    elif CFG.network == 'cnn':
         # CNN: batch, input_dim, seq_len
         t = torch.zeros((1, input_dim, 640)).to(DEVICE)
     print('input  dim', t.size())
@@ -85,11 +87,10 @@ def print_summary(CFG, net, input_dim):
 
 
 def create_network(CFG, input_dim, num_classes):
-    if CFG.network is 'lstm':
+    model = None
+    if CFG.network == 'lstm':
         model = LSTMClassifier(input_dim, 400, 3, num_classes)
-    elif CFG.network is 'cnn':
-        model = HAR_model(input_dim, num_classes)
-    else:
+    elif CFG.network == 'cnn':
         model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
     if CFG.verbose > 1:
