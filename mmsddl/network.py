@@ -59,12 +59,14 @@ class LSTMClassifier(nn.Module):
         self.hidden_dim = hidden_dim
         self.layer_dim = layer_dim
         self.lstm = nn.LSTM(input_dim, hidden_dim, layer_dim, batch_first=True)
-        self.linear = nn.Linear(hidden_dim, output_dim)
+        self.linear1 = nn.Linear(hidden_dim, 32)
+        self.linear = nn.Linear(32, output_dim)
 
     def forward(self, x):
         h0, c0 = self.reset_state(x)
-        out, _ = self.lstm(x.float(), (h0, c0))
-        out = self.linear(out[:, -1, :])
+        lstm_out, _ = self.lstm(x.float(), (h0, c0))
+        l_out = self.linear1(lstm_out[:, -1, :])
+        out = self.linear(l_out)
         return out
 
     def reset_state(self, x):
@@ -89,7 +91,7 @@ def print_summary(CFG, net, input_dim):
 def create_network(CFG, input_dim, num_classes):
     model = None
     if CFG.network == 'lstm':
-        model = LSTMClassifier(input_dim, 400, 3, num_classes)
+        model = LSTMClassifier(input_dim, 50, 1, num_classes)
     elif CFG.network == 'cnn':
         model = HAR_model(input_dim, num_classes)
     model.to(DEVICE)
