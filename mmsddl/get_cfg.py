@@ -83,9 +83,6 @@ def get_CFG():
 
     args = parser.parse_args()
 
-
-
-
     args.modalities = [item for item in args.modalities.split(',')]
     args.modalities = sorted(args.modalities)
 
@@ -116,7 +113,7 @@ def get_CFG():
     gnr | motor | Tonic-clonic	{'c380', 'c333', 'c290', 'c387', 'c372', 'c309'}	6	15	26
 
     '''
-
+    patients = None
     if args.szr_types == 'FBTC':
         patients = ['c189', 'c192', 'c225', 'c226', 'c232', 'c234', 'c241', 'c242', 'c245', 'c296',
                     'c299', 'c303', 'c356', 'c388', 'c392', 'c399', 'c417', 'c421', 'c423', 'c429', 'c433']
@@ -157,8 +154,9 @@ def get_CFG():
         #             'c429', 'c430', 'c432', 'c433']
         patients = None
     else:
-        print('This sezirue type\'s patient list has not been added here', args.szr_types)
-        patients = None
+        print('This sezirue type\'s patient list has not been added here, '
+              'use all patients', args.szr_types)
+
 
     if patients is not None:
         patients = [p.upper() for p in sorted(patients)]
@@ -170,15 +168,6 @@ def get_CFG():
     else:
         sing_wrst = True
 
-    if platform.system() == 'Linux':
-        logs_root = os.path.join(Path.home(), 'dataset')
-        results_dir = os.path.join(logs_root, args.results_dir)
-    elif platform.system() == 'Darwin':
-        logs_root = args.ROOT
-        results_dir = os.path.join(args.ROOT, args.results_dir)
-    else:
-        print('Unknown OS platform %s' % platform.system())
-        exit()
 
     CFG = Config(
         patients=patients,
@@ -193,12 +182,12 @@ def get_CFG():
         win_step=args.win_step,
         rootdir=args.ROOT,
         datadir=os.path.join(args.ROOT, args.DATADIR),
-        traincachedir=os.path.join(logs_root, middle_path, 'cache/train/fold'),
-        valcachedir=os.path.join(logs_root, middle_path, 'cache/val/fold'),
-        testcachedir=os.path.join(logs_root, middle_path, 'cache/test/fold'),
-        plotdir=os.path.join(logs_root, middle_path, 'plots'),
-        ckpdir=os.path.join(logs_root, middle_path, 'checkpoints'),
-        metric_results_dir = results_dir,
+        traincachedir=os.path.join(args.ROOT, middle_path, 'cache/train/fold'),
+        valcachedir=os.path.join(args.ROOT, middle_path, 'cache/val/fold'),
+        testcachedir=os.path.join(args.ROOT, middle_path, 'cache/test/fold'),
+        plotdir=os.path.join(args.ROOT, middle_path, 'plots'),
+        ckpdir=os.path.join(args.ROOT, middle_path, 'checkpoints'),
+        metric_results_dir = os.path.join(args.ROOT, args.results_dir),
         modalities=args.modalities,
         szr_types=args.szr_types,
         preictal_len=args.preictal_len,
