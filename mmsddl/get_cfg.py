@@ -48,7 +48,7 @@ def get_CFG():
 
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='learning rate')
-    parser.add_argument('--batch_size', default=32, type=int,  # 100
+    parser.add_argument('--batch_size', default=256, type=int,  # 100
                         help='mini-batch size (default: 256)')
 
     parser.add_argument('--win_len', default=10, type=int,
