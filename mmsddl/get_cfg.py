@@ -81,6 +81,10 @@ def get_CFG():
                         default='cnn',
                         help='the neural network model for prediction')
 
+    parser.add_argument('--early_stop', type=bool,
+                        default=False,
+                        help='whether early stopping is used')
+
     args = parser.parse_args()
 
     args.modalities = [item for item in args.modalities.split(',')]
@@ -135,7 +139,8 @@ def get_CFG():
     elif args.szr_types == 'focal,Clonic':
         patients = ['c212', 'c226', 'c232', 'c358', 'c427', 'c429']
     elif args.szr_types == 'gnr,Tonic-clonic':
-        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
+        # patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
+        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387', 'c440', 'c475', 'c550', 'c559', 'c575', 'c584', 'c629', 'c631']
     elif args.szr_types == 'Hyperkinetic':
         if platform.system() == 'Linux':
             patients = ['C213', 'C221', 'C226', 'C369', 'C443', 'C436', 'C594']
@@ -173,7 +178,7 @@ def get_CFG():
         patients=patients,
         n_epochs=args.n_epochs,
         lr=args.lr,
-        early_stopping=True,
+        early_stopping=args.early_stop,
         patience=30,
         min_delta=0,
         batch_size=args.batch_size,
