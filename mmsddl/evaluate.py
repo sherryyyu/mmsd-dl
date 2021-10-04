@@ -32,6 +32,7 @@ def evaluate(cfg, net, testset, fdir, test_cache):
     with torch.no_grad():
         szrids, tars, preds, probs = (gen_session(testset, fdir,
                                                   relabelling=cfg.szr_types)
+                            # >> BandpassBvp()
                               >> NormaliseRaw()
                               >> GenWindow(cfg.win_len, win_step)
                               >> Convert2numpy() >> test_cache

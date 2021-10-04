@@ -203,7 +203,7 @@ def get_CFG():
         n_epochs=args.n_epochs,
         lr=args.lr,
         early_stopping=args.early_stop,
-        patience=30,
+        patience=15,
         min_delta=0,
         batch_size=args.batch_size,
         verbose=1,
