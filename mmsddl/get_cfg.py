@@ -148,8 +148,8 @@ def get_CFG():
         patients = ['c212', 'c226', 'c232', 'c358', 'c427', 'c429']
     elif args.szr_types == 'gnr,Tonic-clonic':
         # patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
-        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387', 'c440',
-                    'c475', 'c550', 'c559', 'c575', 'c584', 'c629', 'c631']
+        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387',
+                    'c475', 'c550', 'c575', 'c584', 'c631']
     elif args.szr_types == 'Hyperkinetic':
         if platform.system() == 'Linux':
             patients = ['C213', 'C221', 'C226', 'C369', 'C443', 'C436', 'C594']

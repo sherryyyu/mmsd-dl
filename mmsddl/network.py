@@ -59,8 +59,8 @@ class LSTMClassifier(nn.Module):
         self.hidden_dim = hidden_dim
         self.layer_dim = layer_dim
         self.lstm = nn.LSTM(input_dim, hidden_dim, layer_dim, batch_first=True)
-        self.linear1 = nn.Linear(hidden_dim, 32)
-        self.linear = nn.Linear(32, output_dim)
+        self.linear1 = nn.Linear(hidden_dim, 16)
+        self.linear = nn.Linear(16, output_dim)
 
     def forward(self, x):
         h0, c0 = self.reset_state(x)
