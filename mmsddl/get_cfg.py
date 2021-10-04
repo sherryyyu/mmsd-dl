@@ -39,7 +39,6 @@ def get_CFG():
         print('Unknown OS platform %s' % platform.system())
         exit()
 
-
     parser.add_argument('--n_epochs', default=2, type=int,
                         help='epochs')
     parser.add_argument('--szr_types', default='gnr,Epileptic spasms', type=str,
@@ -73,7 +72,7 @@ def get_CFG():
     parser.add_argument('--crossfold', default=-1, type=int,
                         help='-1: LOO, otherwise number of folds')
 
-    parser.add_argument('--results_dir',type=str,
+    parser.add_argument('--results_dir', type=str,
                         default='redcap_results',
                         help='path to output prediction')
 
@@ -98,9 +97,10 @@ def get_CFG():
     #     args.win_len) + '_step_' + str(args.win_step) + '_sing_wrst_' + str(
     #     args.sing_wrst)
 
-    middle_path = os.path.join(args.results_dir, args.szr_types + '_' + modality_path + '_win_' + str(
-        args.win_len) + '_step_' + str(args.win_step))
-
+    middle_path = os.path.join(args.results_dir,
+                               args.szr_types + '_' + modality_path + '_win_' + str(
+                                   args.win_len) + '_step_' + str(
+                                   args.win_step))
 
     '''
     Feb 22, 2021 Stats:
@@ -119,33 +119,62 @@ def get_CFG():
     '''
     patients = None
     if args.szr_types == 'FBTC':
-        patients = ['c189', 'c192', 'c225', 'c226', 'c232', 'c234', 'c241', 'c242', 'c245', 'c296',
-                    'c299', 'c303', 'c356', 'c388', 'c392', 'c399', 'c417', 'c421', 'c423', 'c429', 'c433']
+        patients = ['c189', 'c192', 'c225', 'c226', 'c232', 'c234', 'c241',
+                    'c242', 'c245', 'c296',
+                    'c299', 'c303', 'c356', 'c388', 'c392', 'c399', 'c417',
+                    'c421', 'c423', 'c429', 'c433']
     elif args.szr_types == 'focal,Tonic':
-        patients = ['c235', 'c242', 'c261', 'c263', 'c278', 'c296', 'c325', 'c328', 'c329', 'c356',
+        patients = ['c235', 'c242', 'c261', 'c263', 'c278', 'c296', 'c325',
+                    'c328', 'c329', 'c356',
                     'c366', 'c377', 'c388', 'c390', 'c399']
     elif args.szr_types == 'gnr,Tonic':
-        patients = ['c147', 'c196', 'c212', 'c236', 'c243', 'c313', 'c326', 'c330', 'c340', 'c353',
+        patients = ['c147', 'c196', 'c212', 'c236', 'c243', 'c313', 'c326',
+                    'c330', 'c340', 'c353',
                     'c364', 'c370', 'c372', 'c378', 'c404']
     elif args.szr_types == 'focal,subclinical':
-        patients = ['c123', 'c190', 'c263', 'c274', 'c278', 'c282', 'c283', 'c305', 'c358', 'c365',
+        patients = ['c123', 'c190', 'c263', 'c274', 'c278', 'c282', 'c283',
+                    'c305', 'c358', 'c365',
                     'c390', 'c391', 'c411', 'c425']
     elif args.szr_types == 'focal,Automatisms':
-        patients = ['c190', 'c195', 'c221', 'c235', 'c284', 'c316', 'c389', 'c391', 'c396', 'c418', 'c427']
+        patients = ['c190', 'c195', 'c221', 'c235', 'c284', 'c316', 'c389',
+                    'c391', 'c396', 'c418', 'c427']
     elif args.szr_types == 'focal,Behavior arrest':
-        patients = ['c190', 'c282', 'c303', 'c328', 'c329', 'c365', 'c389', 'c390', 'c394', 'c403', 'c422']
+        patients = ['c190', 'c282', 'c303', 'c328', 'c329', 'c365', 'c389',
+                    'c390', 'c394', 'c403', 'c422']
     elif args.szr_types == 'gnr,Epileptic spasms':
-        patients = ['c147', 'c196', 'c273', 'c285', 'c406', 'c410', 'c428', 'c432']
+        patients = ['c147', 'c196', 'c273', 'c285', 'c406', 'c410', 'c428',
+                    'c432']
     elif args.szr_types == 'focal,Clonic':
         patients = ['c212', 'c226', 'c232', 'c358', 'c427', 'c429']
     elif args.szr_types == 'gnr,Tonic-clonic':
         # patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
-        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387', 'c440', 'c475', 'c550', 'c559', 'c575', 'c584', 'c629', 'c631']
+        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387', 'c440',
+                    'c475', 'c550', 'c559', 'c575', 'c584', 'c629', 'c631']
     elif args.szr_types == 'Hyperkinetic':
         if platform.system() == 'Linux':
             patients = ['C213', 'C221', 'C226', 'C369', 'C443', 'C436', 'C594']
         elif platform.system() == 'Darwin':
             patients = ['C213', 'C221', 'C226', 'C369']
+    elif args.szr_types == 'motor':
+        patients = ['C129', 'C147', 'C170', 'C189', 'C190', 'C192', 'C195',
+                    'C196', 'C198', 'C212', 'C213', 'C221', 'C225', 'C226',
+                    'C232', 'C234', 'C235', 'C236', 'C241', 'C242', 'C243',
+                    'C245', 'C261', 'C263', 'C273', 'C278', 'C284', 'C285',
+                    'C290', 'C292', 'C296', 'C299', 'C300', 'C303', 'C309',
+                    'C313', 'C316', 'C325', 'C326', 'C328', 'C329', 'C330',
+                    'C333', 'C337', 'C340', 'C353', 'C356', 'C362', 'C364',
+                    'C366', 'C369', 'C370', 'C372', 'C377', 'C378', 'C379',
+                    'C380', 'C387', 'C388', 'C389', 'C390', 'C391', 'C392',
+                    'C396', 'C399', 'C404', 'C406', 'C410', 'C417', 'C418',
+                    'C421', 'C427', 'C428', 'C429', 'C432', 'C433', 'C436',
+                    'C438', 'C440', 'C441', 'C443', 'C444', 'C450', 'C453',
+                    'C465', 'C466', 'C467', 'C475', 'C477', 'C478', 'C480',
+                    'C482', 'C490', 'C492', 'C493', 'C506', 'C507', 'C513',
+                    'C525', 'C530', 'C533', 'C537', 'C540', 'C550', 'C553',
+                    'C556', 'C559', 'C561', 'C564', 'C569', 'C571', 'C575',
+                    'C579', 'C584', 'C586', 'C587', 'C594', 'C604', 'C609',
+                    'C615', 'C619', 'C624', 'C629', 'C631', 'C633', 'C635',
+                    'C640', 'C641']
     elif args.szr_types == 'szr':
         # patients = ['c123', 'c147', 'c189', 'c190', 'c192', 'c195', 'c196', 'c197', 'c198', 'c200',
         #             'c212', 'c213', 'c218', 'c221', 'c225', 'c226', 'c228', 'c232', 'c234', 'c235',
@@ -162,7 +191,6 @@ def get_CFG():
         print('This sezirue type\'s patient list has not been added here, '
               'use all patients', args.szr_types)
 
-
     if patients is not None:
         patients = [p.upper() for p in sorted(patients)]
 
@@ -172,7 +200,6 @@ def get_CFG():
         sing_wrst = False
     else:
         sing_wrst = True
-
 
     CFG = Config(
         patients=patients,
@@ -192,7 +219,7 @@ def get_CFG():
         testcachedir=os.path.join(args.ROOT, middle_path, 'cache/test/fold'),
         plotdir=os.path.join(args.ROOT, middle_path, 'plots'),
         ckpdir=os.path.join(args.ROOT, middle_path, 'checkpoints'),
-        metric_results_dir = os.path.join(args.ROOT, args.results_dir),
+        metric_results_dir=os.path.join(args.ROOT, args.results_dir),
         modalities=args.modalities,
         szr_types=args.szr_types,
         preictal_len=args.preictal_len,
@@ -202,7 +229,7 @@ def get_CFG():
         cacheclear=True,
         sing_wrst=sing_wrst,
         max_cpu=args.max_cpu,
-        crossfold = args.crossfold
-        )
+        crossfold=args.crossfold
+    )
 
     return CFG
