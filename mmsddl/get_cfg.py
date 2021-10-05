@@ -43,7 +43,7 @@ def get_CFG():
                         help='epochs')
     parser.add_argument('--szr_types', default='gnr,Epileptic spasms', type=str,
                         help='szr_types')
-    parser.add_argument('--modalities', default='EDA', type=str,
+    parser.add_argument('--modalities', default='ACC', type=str,
                         help='szr_types')
 
     parser.add_argument('--lr', default=1e-3, type=float,
@@ -77,7 +77,7 @@ def get_CFG():
                         help='path to output prediction')
 
     parser.add_argument('--network', type=str,
-                        default='cnn',
+                        default='cnnlstm',
                         help='the neural network model for prediction')
 
     parser.add_argument('--early_stop', type=bool,
@@ -217,6 +217,7 @@ def get_CFG():
         batch_size=args.batch_size,
         verbose=1,
         win_len=args.win_len,
+        subsequence=1,
         win_step=args.win_step,
         rootdir=args.ROOT,
         datadir=os.path.join(args.ROOT, args.DATADIR),

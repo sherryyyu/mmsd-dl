@@ -52,7 +52,7 @@ class HAR_model(nn.Module):
         return x
 
 
-class LSTMClassifier(nn.Module):
+class LSTM(nn.Module):
     """Vanilla LSTM-based time-series classifier."""
 
     def __init__(self, input_dim, hidden_dim, layer_dim, output_dim):
@@ -76,18 +76,60 @@ class LSTMClassifier(nn.Module):
         return h0, c0
 
 
+class CNN(nn.Module):
+    def __init__(self, input_size):
+        super().__init__()
+
+        n_filter = 5
+
+        # Extract features, 1D conv layers
+        self.cnn = nn.Sequential(
+            nn.Conv1d(input_size, n_filter, 3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Flatten()
+        ) # out: (step, n_filter * new_fs / 2)
+
+    def forward(self, x):
+        x = self.cnn(x.float())
+        return x
+
+
+class CNNLSTM(nn.Module):
+    def __init__(self, input_size, num_classes, cfg):
+        super(CNNLSTM, self).__init__()
+        self.cnn = CNN(input_size)
+        self.lstm = nn.LSTM(
+            input_size=5 * max_fs(cfg.modalities) // 2,
+            hidden_size=50,
+            num_layers=1,
+            batch_first=True)
+        self.linear = nn.Linear(50, num_classes)
+
+    def forward(self, x):
+        batch_size, timesteps, S, C = x.size()
+        c_in = x.view(batch_size * timesteps, S, C).permute(0, 2, 1)
+        c_out = self.cnn(c_in)
+        r_in = c_out.view(batch_size, timesteps, -1)
+        r_out, (h_n, h_c) = self.lstm(r_in)
+        r_out2 = self.linear(r_out[:, -1, :])
+
+        return r_out2
+
+
 def print_summary(cfg, net, input_dim):
     t = None
-    print(cfg.network == 'lstm')
     if cfg.network == 'lstm':
         # RNN: batch, seq_len, input_dim
         # t = torch.zeros((1, 640, input_dim)).to(DEVICE)
-        t = torch.zeros(1, cfg.win_len//2,
-                        2 * max_fs(cfg.modalities) * input_dim).to(DEVICE)
+        t = torch.zeros(1, cfg.win_len//cfg.subsequence,
+                        cfg.subsequence * max_fs(cfg.modalities) * input_dim).to(DEVICE)
     elif cfg.network == 'cnn':
         # CNN: batch, input_dim, seq_len
-        t = torch.zeros((1, input_dim,
-                         cfg.win_len * max_fs(cfg.modalities))).to(DEVICE)
+        t = torch.zeros(1, input_dim,
+                         cfg.win_len * max_fs(cfg.modalities)).to(DEVICE)
+    elif cfg.network == 'cnnlstm':
+        t = torch.zeros(1, 10, 32, 3)
     print('input  dim', t.size())
     print(summary(net, t, show_input=False))
 
@@ -96,10 +138,12 @@ def create_network(cfg, num_classes):
     model = None
     n_channel = num_channels(cfg.modalities)
     if cfg.network == 'lstm':
-        input_dim = n_channel * max_fs(cfg.modalities) * 2
-        model = LSTMClassifier(input_dim, 50, 1, num_classes)
+        input_dim = n_channel * max_fs(cfg.modalities) * cfg.subsequence
+        model = LSTM(input_dim, 50, 1, num_classes)
     elif cfg.network == 'cnn':
         model = HAR_model(n_channel, num_classes)
+    elif cfg.network == 'cnnlstm':
+        model = CNNLSTM(n_channel, num_classes, cfg)
     model.to(DEVICE)
     if cfg.verbose > 1:
         print_summary(cfg, model, n_channel)
@@ -145,4 +189,6 @@ def load_ckp(ckpdir, net, optimizer, best_auc, fold_no):
 
 
 if __name__ == '__main__':
-    net = create_network(6, 2)
+    from mmsddl.get_cfg import get_CFG
+    cfg = get_CFG()
+    net = create_network(cfg, 2)

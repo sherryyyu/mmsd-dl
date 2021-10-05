@@ -25,20 +25,24 @@ def to_numpy(x):
 
 
 @nut_processor
-def MakeBatch(samples, CFG, batchsize, test = False):
+def MakeBatch(samples, cfg, batchsize, test = False):
     for batch in samples >> Chunk(batchsize):
         if test:
             meta, szrids, targets, data = batch >> Unzip()
         else:
             meta, targets, data = batch >> Unzip()
         data_batch = torch.tensor(data).to(DEVICE)
-        if CFG.network == 'cnn':
+        if cfg.network == 'cnn':
             # change channel location for pytorch compatibility
             data_batch = data_batch.permute(0, 2, 1)
-        elif CFG.network == 'lstm':
+        elif cfg.network == 'lstm':
             # change the input to 2 second segments
             b = data_batch.shape[0]
-            data_batch = data_batch.reshape(b, CFG.win_len//2, -1)
+            data_batch = data_batch.reshape(b, cfg.win_len // cfg.subsequence, -1)
+        elif cfg.network == 'cnnlstm':
+            b, l, c = data_batch.shape
+            data_batch = data_batch.reshape(b, cfg.win_len // cfg.subsequence,
+                                            -1, c)
 
         tar_batch = torch.tensor(targets).to(DEVICE)
         if test:
