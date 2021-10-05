@@ -27,7 +27,7 @@ from mmsdcommon.data import load_metadata, gen_session, GenWindow
 from mmsdcommon.cross_validate import *
 from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance,
                                    NormaliseRaw, FilterSzrFree, BandpassBvp)
-from mmsdcommon.util import (num_channels, metrics2print, print_all_folds,
+from mmsdcommon.util import (metrics2print, print_all_folds,
                              PrintAll, save_all_folds)
 
 from mmsddl.network import create_network
@@ -59,7 +59,7 @@ def optimise(CFG, nb_classes, trainset, n_fold):
               f"{train['patient'].unique()} "
               f"and validation patients {val['patient'].unique()}... ")
 
-        net = create_network(CFG, num_channels(CFG.modalities), nb_classes)
+        net = create_network(CFG, nb_classes)
         # i_fold = str(n_fold) + '-' + str(i)
         metrics, best_auc = train_network(CFG, net, train, val, best_auc, i, len(folds))
         all_metrics.append(metrics2print(metrics))
@@ -178,7 +178,7 @@ def train_fold(i, train, test, cfg, nb_classes):
           f"{train['patient'].unique()} "
           f"and test patients {test['patient'].unique()}... ")
 
-    net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
+    net = create_network(cfg, nb_classes)
     metrics, _ = train_network(cfg, net, train, test, 0, i)
     return metrics2print(metrics)
 
@@ -221,7 +221,7 @@ if __name__ == '__main__':
               f"{train['patient'].unique()} "
               f"and test patients {test['patient'].unique()}... ")
 
-        net = create_network(cfg, num_channels(cfg.modalities), nb_classes)
+        net = create_network(cfg, nb_classes)
         metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
         testp_metrics.append(metrics2print(metrics))
         # break

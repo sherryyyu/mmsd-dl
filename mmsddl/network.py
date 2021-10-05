@@ -7,12 +7,13 @@ Function:
    Define the neural network models
 '''
 
+import os
 import torch
 import torch.nn as nn
 from mmsddl.get_cfg import DEVICE
 from pytorch_model_summary import summary
 from time import sleep
-import os
+from mmsdcommon.util import num_channels, max_fs
 
 
 class HAR_model(nn.Module):
@@ -75,28 +76,33 @@ class LSTMClassifier(nn.Module):
         return h0, c0
 
 
-def print_summary(CFG, net, input_dim):
+def print_summary(cfg, net, input_dim):
     t = None
-    print(CFG.network == 'lstm')
-    if CFG.network == 'lstm':
+    print(cfg.network == 'lstm')
+    if cfg.network == 'lstm':
         # RNN: batch, seq_len, input_dim
-        t = torch.zeros((1, 640, input_dim)).to(DEVICE)
-    elif CFG.network == 'cnn':
+        # t = torch.zeros((1, 640, input_dim)).to(DEVICE)
+        t = torch.zeros(1, cfg.win_len//2,
+                        2 * max_fs(cfg.modalities) * input_dim).to(DEVICE)
+    elif cfg.network == 'cnn':
         # CNN: batch, input_dim, seq_len
-        t = torch.zeros((1, input_dim, 640)).to(DEVICE)
+        t = torch.zeros((1, input_dim,
+                         cfg.win_len * max_fs(cfg.modalities))).to(DEVICE)
     print('input  dim', t.size())
     print(summary(net, t, show_input=False))
 
 
-def create_network(CFG, input_dim, num_classes):
+def create_network(cfg, num_classes):
     model = None
-    if CFG.network == 'lstm':
+    n_channel = num_channels(cfg.modalities)
+    if cfg.network == 'lstm':
+        input_dim = n_channel * max_fs(cfg.modalities) * 2
         model = LSTMClassifier(input_dim, 50, 1, num_classes)
-    elif CFG.network == 'cnn':
-        model = HAR_model(input_dim, num_classes)
+    elif cfg.network == 'cnn':
+        model = HAR_model(n_channel, num_classes)
     model.to(DEVICE)
-    if CFG.verbose > 1:
-        print_summary(CFG, model, input_dim)
+    if cfg.verbose > 1:
+        print_summary(cfg, model, n_channel)
     return model
 
 
@@ -131,8 +137,9 @@ def load_ckp(ckpdir, net, optimizer, best_auc, fold_no):
         best_auc = checkpoint['best_auc']
         es_cnt = checkpoint['es_cnt']
         es_best_auc = checkpoint['es_best_auc']
-        return net, optimizer, checkpoint['epoch'], best_auc, es_cnt, es_best_auc, checkpoint[
-            'metrics']
+        return net, optimizer, checkpoint[
+            'epoch'], best_auc, es_cnt, es_best_auc, checkpoint[
+                   'metrics']
     else:
         return net, optimizer, 0, best_auc, 0, None, None
 

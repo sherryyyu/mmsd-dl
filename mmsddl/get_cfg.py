@@ -153,9 +153,12 @@ def get_CFG():
     elif args.szr_types == 'focal,Clonic':
         patients = ['c212', 'c226', 'c232', 'c358', 'c427', 'c429']
     elif args.szr_types == 'gnr,Tonic-clonic':
-        # patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
-        patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387',
-                    'c475', 'c550', 'c575', 'c584', 'c631']
+        if platform.system() == 'Linux':
+            patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387',
+                        'c475', 'c550', 'c575', 'c584', 'c631']
+        elif platform.system() == 'Darwin':
+            patients = ['c290', 'c309', 'c333', 'c372', 'c380', 'c387']
+
     elif args.szr_types == 'Hyperkinetic':
         if platform.system() == 'Linux':
             patients = ['C213', 'C221', 'C226', 'C369', 'C443', 'C436', 'C594']
@@ -209,7 +212,7 @@ def get_CFG():
         n_epochs=args.n_epochs,
         lr=args.lr,
         early_stopping=args.early_stop,
-        patience=15,
+        patience=20,
         min_delta=0,
         batch_size=args.batch_size,
         verbose=1,

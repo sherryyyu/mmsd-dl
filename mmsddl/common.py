@@ -35,6 +35,11 @@ def MakeBatch(samples, CFG, batchsize, test = False):
         if CFG.network == 'cnn':
             # change channel location for pytorch compatibility
             data_batch = data_batch.permute(0, 2, 1)
+        elif CFG.network == 'lstm':
+            # change the input to 2 second segments
+            b = data_batch.shape[0]
+            data_batch = data_batch.reshape(b, CFG.win_len//2, -1)
+
         tar_batch = torch.tensor(targets).to(DEVICE)
         if test:
             yield szrids, tar_batch, data_batch
