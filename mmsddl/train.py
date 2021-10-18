@@ -121,7 +121,7 @@ def train_network(CFG, net, trainset, valset, best_auc, fold_no, total_folds):
 
         loss = (gen_session(trainset, CFG.datadir, relabelling=CFG.szr_types)
                 >> FilterSzrFree()
-                # >> BandpassBvp()
+                >> BandpassBvp()
                 >> NormaliseRaw()
                 >> GenWindow(CFG.win_len, CFG.win_step)
                 >> BalanceSession('under')

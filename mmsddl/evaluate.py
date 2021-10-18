@@ -18,7 +18,7 @@ import torch
 from nutsflow import *
 from nutsml import PrintType, PrintColType
 from mmsdcommon.data import gen_session, GenWindow
-from mmsdcommon.preprocess import FilterNonMotor, NormaliseRaw
+from mmsdcommon.preprocess import FilterNonMotor, NormaliseRaw, BandpassBvp
 from mmsddl.common import MakeBatch, PredBatch, Convert2numpy
 from mmsdcommon.metrics import szr_metrics
 
@@ -32,7 +32,7 @@ def evaluate(cfg, net, testset, fdir, test_cache):
     with torch.no_grad():
         szrids, tars, preds, probs = (gen_session(testset, fdir,
                                                   relabelling=cfg.szr_types)
-                            # >> BandpassBvp()
+                              >> BandpassBvp()
                               >> NormaliseRaw()
                               >> GenWindow(cfg.win_len, win_step)
                               >> Convert2numpy() >> test_cache
