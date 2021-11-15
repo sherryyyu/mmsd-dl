@@ -265,8 +265,14 @@ def train_personal_AE(cfg, net, patient, train, test):
 
     # tensorboard off
     writer.close()
+
+    val_loss, std_loss, max_loss = val_loss_AE(cfg, net, val, val_cache)
+    sd_loss = val_loss + 3*std_loss
+    metrics = eval_AE(cfg, net, test, sd_loss)
+    print('3STD=', sd_loss,' sens = ', metrics['sens'], 'fars = ', metrics['fars'])
+
     metrics = eval_AE(cfg, net, test, max_loss)
-    print('sens = ',metrics['sens'], 'fars = ', metrics['fars'])
+    print('MAX=',max_loss,' sens = ',metrics['sens'], 'fars = ', metrics['fars'])
 
     # if start_epoch>=cfg.n_epochs or stop_training:
     #     if cfg.verbose:
