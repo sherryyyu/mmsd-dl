@@ -182,19 +182,18 @@ def train_network(cfg, net, trainset, valset, best_auc, fold_no, total_folds):
 def train_patient(patient, metadata_df, cfg, nb_classes):
     p_df = metadata_df[metadata_df['patient'] == patient]
     train = (gen_session(p_df, cfg.datadir, relabelling=cfg.szr_types)
-            # >> PrintAll()
             >> NormaliseRaw()
             >> SplitByNHour(1)
             >> FilterSzrFree(reverse=True)
-            # >> PrintAll()
             >> Collect())
     test = (gen_session(p_df, cfg.datadir, relabelling=cfg.szr_types)
-            # >> PrintAll()
             >> NormaliseRaw()
             >> SplitByNHour(1)
             >> FilterSzrFree()
-            # >> PrintAll()
             >> Collect())
+
+    if len(test) < 1 or len(train) < 4:
+        return None
 
     net = create_network(cfg, nb_classes)
     return train_personal_AE(cfg, net, patient, train, test)
@@ -417,7 +416,8 @@ if __name__ == '__main__':
         testp_metrics = []
         for p in sorted(patients):
             metrics = train_patient(p, metadata_df, cfg, nb_classes)
-            testp_metrics.append(metrics2print(metrics))
+            if metrics is not None:
+                testp_metrics.append(metrics2print(metrics))
         results = print_all_folds(testp_metrics, len(patients),
                                   cfg, cfg.metric_results_dir, cfg.datadir)
     else:
