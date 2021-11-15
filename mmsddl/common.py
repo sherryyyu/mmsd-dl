@@ -24,6 +24,14 @@ def to_numpy(x):
     return x.detach().cpu().numpy()
 
 
+def sample_negatives(label, data):
+    return label[label<1], data[label<1]
+
+
+def mae(arr1, arr2):
+    np.mean(np.abs(arr1 - arr2), axis=1)
+
+
 @nut_processor
 def MakeBatch(samples, cfg, batchsize, test = False):
     for batch in samples >> Chunk(batchsize):
@@ -43,6 +51,9 @@ def MakeBatch(samples, cfg, batchsize, test = False):
             b, l, c = data_batch.shape
             data_batch = data_batch.reshape(b, cfg.win_len // cfg.subsequence,
                                             -1, c)
+        elif cfg.network == 'convae':
+            # change channel location for pytorch compatibility
+            data_batch = data_batch.permute(0, 2, 1)
 
         tar_batch = torch.tensor(targets).to(DEVICE)
         if test:
@@ -62,10 +73,21 @@ def PredBatch(batch, net):
 
 
 @nut_function
-def TrainBatch(batch, net, optimizer, criterion):
+def PredBatchAE(batch, net, criterion):
+    szrids, labels, data = batch
+    preds = net(data)
+    losses = criterion(preds, data.float())
+    return szrids, to_numpy(labels), to_numpy(preds), to_numpy(losses)
+
+
+@nut_function
+def TrainBatch(batch, net, optimizer, criterion, ae=False):
     targets, data = batch
     preds = net(data)
-    loss = criterion(preds, targets)
+    if ae:
+        loss = criterion(preds, data.float())
+    else:
+        loss = criterion(preds, targets)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -77,6 +99,15 @@ def Convert2numpy(sample):
     X = np.concatenate(sample[3:], axis=1)
     return sample[0], sample[1], sample[2], X
 
+
+@nut_processor
+def SessionMinusSeizure(sample):
+    same_sess = lambda x: (x.metadata['pid'], x.metadata['sid'])
+    for session in sample >> ChunkBy(same_sess, list):
+        meta, id, label, data = session >> Convert2numpy() >> Unzip()
+        label, data = sample_negatives(np.array(label), np.array(data))
+        for l, d in zip(label, data):
+            yield meta[0], l, d
 
 
 

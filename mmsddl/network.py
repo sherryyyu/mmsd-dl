@@ -117,6 +117,37 @@ class CNNLSTM(nn.Module):
         return r_out2
 
 
+class ConvAE(nn.Module):
+    """1D CNN based Autoencoder model."""
+
+    def __init__(self, input_size):
+        super().__init__()
+
+        n_filter = 128
+
+        self.encode = nn.Sequential(  # input: 640 * input_size
+            nn.Conv1d(input_size, n_filter, 3, padding=1),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Conv1d(n_filter, n_filter//2, 3, padding=1),
+            nn.ReLU()
+        )
+        self.decode = nn.Sequential(
+            nn.ConvTranspose1d(n_filter // 2, n_filter//2, 3, padding=1),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.ConvTranspose1d(n_filter // 2, n_filter, 3, padding=1),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.ConvTranspose1d(n_filter, input_size, 3, padding=1),
+        )
+
+    def forward(self, x):
+        x = self.encode(x.float())
+        x = self.decode(x)
+        return x
+
+
 def print_summary(cfg, net, input_dim):
     t = None
     if cfg.network == 'lstm':
@@ -130,6 +161,10 @@ def print_summary(cfg, net, input_dim):
                          cfg.win_len * max_fs(cfg.modalities)).to(DEVICE)
     elif cfg.network == 'cnnlstm':
         t = torch.zeros(1, 10, 32, 3)
+    elif cfg.network == 'convae':
+        # encoder: batch, input_dim, seq_len
+        t = torch.zeros(1, input_dim,
+                        cfg.win_len * max_fs(cfg.modalities)).to(DEVICE)
     print('input  dim', t.size())
     print(summary(net, t, show_input=False))
 
@@ -144,6 +179,8 @@ def create_network(cfg, num_classes):
         model = HAR_model(n_channel, num_classes)
     elif cfg.network == 'cnnlstm':
         model = CNNLSTM(n_channel, num_classes, cfg)
+    elif cfg.network == 'convae':
+        model = ConvAE(n_channel)
     model.to(DEVICE)
     if cfg.verbose > 1:
         print_summary(cfg, model, n_channel)
