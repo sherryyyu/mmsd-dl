@@ -93,7 +93,8 @@ def eval_AE(cfg, net, test, max_loss):
         # plt.plot(x, np.array(tars) * 0.05, losses)
         # plt.show()
 
-        threshold = np.concatenate([np.arange(1.2, 1, -0.04),np.arange(1, 0.9, -0.02)])
+        # threshold = np.concatenate([np.arange(2, 1, -0.5),np.arange(1, 0.9, -0.02)])
+        threshold = np.array([2.5, 2, 1.5, 1, 0.98, 0.95])
         threshold = threshold * max_loss
         return szr_metrics(szrids, tars, losses, cfg.preictal_len, cfg.postictal_len,
                            single_wrst=cfg.sing_wrst, thresholds=threshold)

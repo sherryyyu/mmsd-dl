@@ -207,13 +207,18 @@ def get_CFG():
     else:
         sing_wrst = True
 
+
+    patience = 15
+    if args.network == 'convae':
+        patience = 3
+
     CFG = Config(
         patients=patients,
         n_epochs=args.n_epochs,
         lr=args.lr,
         early_stopping=args.early_stop,
         # patience=20,
-        patience=10,
+        patience=patience,
         min_delta=0,
         batch_size=args.batch_size,
         verbose=1,

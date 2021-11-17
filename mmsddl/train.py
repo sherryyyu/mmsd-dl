@@ -29,6 +29,7 @@ from mmsdcommon.preprocess import (FilterNonMotor, sample_imbalance, SplitByNHou
                                    NormaliseRaw, FilterSzrFree, BandpassBvp)
 from mmsdcommon.util import (metrics2print, print_all_folds,
                              PrintAll, save_all_folds)
+from mmsdcommon.metrics import fpr2far
 
 from mmsddl.network import create_network
 from mmsddl.get_cfg import get_CFG
@@ -208,11 +209,11 @@ def train_personal_AE(cfg, net, patient, train, test):
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(net.parameters(), cfg.lr)
 
-    max_loss = 0
+    threshold_loss = 0
     fold_no = patient
 
-    state = load_ckp(cfg.ckpdir, net, optimizer, max_loss, fold_no)
-    net, optimizer, start_epoch, max_loss, es_cnt, es_best_loss, metrics = state
+    state = load_ckp(cfg.ckpdir, net, optimizer, threshold_loss, fold_no)
+    net, optimizer, start_epoch, threshold_loss, es_cnt, es_best_loss, metrics = state
 
     train_cache = create_cache(cfg, fold_no, True)
     val_cache = create_cache(cfg, fold_no, False)
@@ -238,6 +239,7 @@ def train_personal_AE(cfg, net, patient, train, test):
                 >> Mean())
 
         val_loss, std_loss, max_loss = val_loss_AE(cfg, net, val, val_cache)
+        threshold_loss = val_loss + 3 * std_loss
 
         stop_training, es_cnt, es_best_loss = early_stopping(cfg, val_loss,
                                                             es_cnt, es_best_loss,
@@ -250,14 +252,14 @@ def train_personal_AE(cfg, net, patient, train, test):
         # # print('Evaluating: ', valset['patient'].unique())
 
         if cfg.verbose:
-            msg = "Patient {:s} Epoch {:d}/{:d}  {:s} : loss {:.4f} val-loss {:.4f} max-loss {:.4f}"
+            msg = "Patient {:s} Epoch {:d}/{:d}  {:s} : loss {:.4f} val-loss {:.4f} th-loss {:.4f}"
             print(cfg.szr_types[0], cfg.modalities,
                   msg.format(patient, epoch + 1, cfg.n_epochs, str(t),
-                             loss, val_loss, max_loss))
+                             loss, val_loss, threshold_loss))
             if stop_training:
                 print("Training stopped early")
 
-        state = get_state(fold_no, epoch, max_loss,
+        state = get_state(fold_no, epoch, threshold_loss,
                           es_cnt, es_best_loss, metrics, net, optimizer)
         save_ckp(state, cfg.ckpdir, fold_no)
 
@@ -266,12 +268,17 @@ def train_personal_AE(cfg, net, patient, train, test):
     writer.close()
 
     val_loss, std_loss, max_loss = val_loss_AE(cfg, net, val, val_cache)
-    sd_loss = val_loss + 3*std_loss
-    metrics = eval_AE(cfg, net, test, sd_loss)
-    print('3STD=', sd_loss,' sens = ', metrics['sens'], 'fars = ', metrics['fars'])
-
     metrics = eval_AE(cfg, net, test, max_loss)
-    print('MAX=',max_loss,' sens = ',metrics['sens'], 'fars = ', metrics['fars'])
+    print('Patient ', patient,
+          'MAX=', max_loss, metrics,
+          'fars = ', fpr2far(np.array(metrics['fars'])))
+
+
+    threshold_loss = val_loss + 3*std_loss
+    metrics = eval_AE(cfg, net, test, threshold_loss)
+    print('Patient ', patient,
+          '3STD=', threshold_loss, metrics,
+          'fars = ', fpr2far(np.array(metrics['fars'])))
 
     # if start_epoch>=cfg.n_epochs or stop_training:
     #     if cfg.verbose:
@@ -412,7 +419,7 @@ if __name__ == '__main__':
 
     if cfg.network == 'convae':
         patients = set(metadata_df['patient'].to_list())
-        print(patients)
+        print(sorted(patients))
         testp_metrics = []
         for p in sorted(patients):
             metrics = train_patient(p, metadata_df, cfg, nb_classes)
@@ -424,16 +431,15 @@ if __name__ == '__main__':
         # for non parallel training
         testp_metrics = []
         for i, (train, test) in enumerate(folds):
-            best_auc = optimise(cfg, nb_classes, train, i)
+            # best_auc = optimise(cfg, nb_classes, train, i)
 
-            # print(f"Fold {i + 1}/{len(folds)}: loading train patients "
-            #       f"{train['patient'].unique()} "
-            #       f"and test patients {test['patient'].unique()}... ")
-            #
-            # net = create_network(cfg, nb_classes)
-            # metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
-            # testp_metrics.append(metrics2print(metrics))
-            break
+            print(f"Fold {i + 1}/{len(folds)}: loading train patients "
+                  f"{train['patient'].unique()} "
+                  f"and test patients {test['patient'].unique()}... ")
+
+            net = create_network(cfg, nb_classes)
+            metrics, _ = train_network(cfg, net, train, test, 0, i,len(folds))
+            testp_metrics.append(metrics2print(metrics))
 
         results = print_all_folds(testp_metrics, len(folds),
                                   cfg, cfg.metric_results_dir, cfg.datadir)
