@@ -177,6 +177,9 @@ def train_network(cfg, net, trainset, valset, best_auc, fold_no, total_folds):
             print(valset['patient'].unique()[0], cfg.szr_types[0], cfg.modalities,
                   msg.format(fold_no, total_folds, start_epoch, cfg.n_epochs, metrics['auc']))
 
+        # only needed for re-evaluation
+        metrics = evaluate(cfg, net, valset, cfg.datadir, val_cache)
+
     return metrics, best_auc
 
 
