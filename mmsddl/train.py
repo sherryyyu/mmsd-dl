@@ -183,7 +183,7 @@ def train_network(cfg, net, trainset, valset, best_auc, fold_no, total_folds):
 
     return metrics, best_auc
 
-def infer_patient(patient, metadata_df, cfg, nb_classes):
+def infer_patient(patient, fold_no, metadata_df, cfg, nb_classes):
     p_df = metadata_df[metadata_df['patient'] == patient]
 
     test = (gen_session(p_df, cfg.datadir, relabelling=cfg.szr_types)
@@ -198,7 +198,6 @@ def infer_patient(patient, metadata_df, cfg, nb_classes):
     optimizer = torch.optim.Adam(net.parameters(), cfg.lr)
 
     best_auc = None
-    fold_no = 0
 
     state = load_ckp(cfg.ckpdir, net, optimizer, best_auc, fold_no)
     net, optimizer, start_epoch, best_auc, es_cnt, es_best_auc, metrics = state
@@ -476,7 +475,7 @@ if __name__ == '__main__':
 
     elif cfg.network == 'cnnlstm':
         net = create_network(cfg, nb_classes)
-        infer_patient('C290', metadata_df, cfg, nb_classes)
+        infer_patient('C290', fold_no, metadata_df, cfg, nb_classes)
 
     else:
         # for non parallel training
