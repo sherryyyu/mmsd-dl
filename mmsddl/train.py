@@ -33,10 +33,11 @@ from mmsdcommon.metrics import fpr2far
 
 from mmsddl.network import create_network
 from mmsddl.get_cfg import get_CFG
-from mmsddl.common import MakeBatch, TrainBatch, Convert2numpy, SessionMinusSeizure
+from mmsddl.common import MakeBatch, PredBatch, TrainBatch, Convert2numpy, SessionMinusSeizure
 from mmsddl.evaluate import evaluate, evaluate_AE, val_loss_AE, eval_AE
 from mmsddl.util import print_metrics, early_stopping
 from mmsddl.network import save_wgts, load_wgts, save_ckp, load_ckp
+from mmsdcommon.metrics import szr_metrics
 
 
 @nut_processor
@@ -181,6 +182,48 @@ def train_network(cfg, net, trainset, valset, best_auc, fold_no, total_folds):
         metrics = evaluate(cfg, net, valset, cfg.datadir, val_cache)
 
     return metrics, best_auc
+
+def infer_patient(patient, metadata_df, cfg, nb_classes):
+    p_df = metadata_df[metadata_df['patient'] == patient]
+
+    test = (gen_session(p_df, cfg.datadir, relabelling=cfg.szr_types)
+            >> NormaliseRaw()
+            >> SplitByNHour(1)
+            >> FilterSzrFree()
+            >> Collect())
+
+    net = create_network(cfg, nb_classes)
+
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(net.parameters(), cfg.lr)
+
+    best_auc = None
+    fold_no = 0
+
+    state = load_ckp(cfg.ckpdir, net, optimizer, best_auc, fold_no)
+    net, optimizer, start_epoch, best_auc, es_cnt, es_best_auc, metrics = state
+
+    net.eval()
+    win_step = 10
+    # print('Evaluating: ', testset['patient'].unique())
+    with torch.no_grad():
+        szrids, tars, preds, probs = (test
+                              >> GenWindow(cfg.win_len, win_step)
+                              >> Convert2numpy()
+                              >> MakeBatch(cfg, cfg.batch_size, test=True)
+                              >> PredBatch(net) >> Unzip())
+
+        tars = tars >> Flatten() >> Clone(cfg.win_len) >> Collect()
+        szrids = szrids >> Flatten() >> Clone(cfg.win_len) >> Collect()
+        probs = (probs >> Flatten() >> Get(1)
+                 >> Clone(cfg.win_len) >> Collect())
+
+    metrics = szr_metrics(szrids, tars, probs, cfg.preictal_len, cfg.postictal_len,
+                       single_wrst=cfg.sing_wrst)
+
+    print(patient)
+    print(metrics)
+    return metrics
 
 
 def train_patient(patient, metadata_df, cfg, nb_classes):
@@ -430,6 +473,11 @@ if __name__ == '__main__':
                 testp_metrics.append(metrics2print(metrics))
         results = print_all_folds(testp_metrics, len(patients),
                                   cfg, cfg.metric_results_dir, cfg.datadir)
+
+    elif cfg.network == 'cnnlstm':
+        net = create_network(cfg, nb_classes)
+        infer_patient('C290', metadata_df, cfg, nb_classes)
+
     else:
         # for non parallel training
         testp_metrics = []
